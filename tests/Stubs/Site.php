@@ -9,6 +9,7 @@ namespace Tests\Stubs;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Plugin\PluginHelper;
 
 final class Query
 {
@@ -159,12 +160,13 @@ final class Site
         $db = Factory::$db = new Database();
         Factory::$viewLevels        = [1];
         Factory::$superUser         = false;
+        PluginHelper::$layoutPath   = '';
         HTMLHelper::$calls          = [];
         HTMLHelper::$contentPlugins = [];
 
         $db->exec('CREATE TABLE jos_users (id INT, name TEXT COLLATE NOCASE, username TEXT COLLATE NOCASE, email TEXT, block INT, password TEXT, registerDate TEXT)');
         $db->exec('CREATE TABLE jos_user_usergroup_map (user_id INT, group_id INT)');
-        $db->exec('CREATE TABLE jos_comprofiler (id INT, user_id INT, approved INT, confirmed INT, avatar TEXT, avatarapproved INT, cb_city TEXT, cb_color TEXT)');
+        $db->exec('CREATE TABLE jos_comprofiler (id INT, user_id INT, approved INT, confirmed INT, avatar TEXT, avatarapproved INT, cb_city TEXT, cb_color TEXT, cb_about TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_lists (listid INTEGER PRIMARY KEY, title TEXT, published INT, usergroupids TEXT, params TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_fields (fieldid INT, name TEXT, type TEXT, "table" TEXT, tablecolumns TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_field_values (fieldid INT, fieldtitle TEXT, fieldlabel TEXT)');
@@ -174,6 +176,7 @@ final class Site
         $db->exec("INSERT INTO jos_comprofiler_fields VALUES (4,'avatar','image','#__comprofiler','avatar,avatarapproved')");
         $db->exec("INSERT INTO jos_comprofiler_fields VALUES (5,'password','password','#__users','password')");
         $db->exec("INSERT INTO jos_comprofiler_fields VALUES (6,'cb_color','select','#__comprofiler','cb_color')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (7,'cb_about','editorta','#__comprofiler','cb_about')");
 
         self::user(self::DOLLY, 'Dolly', 'Dolphine', 'Utrecht');
         self::user(self::ELLY, 'Elly elifant', 'elifantE', 'Rotterdam');
@@ -188,7 +191,7 @@ final class Site
         $db = Factory::$db;
         $db->exec('INSERT INTO jos_users VALUES (?,?,?,?,?,?,?)', [$id, $name, $username, strtolower($username) . '@example.org', $block, "hash$id", '2026-01-' . (700 - $id)]);
         $db->exec('INSERT INTO jos_user_usergroup_map VALUES (?,2)', [$id]);
-        $db->exec('INSERT INTO jos_comprofiler VALUES (?,?,1,1,?,1,?,NULL)', [$id, $id, "gallery/$id.png", $city]);
+        $db->exec('INSERT INTO jos_comprofiler VALUES (?,?,1,1,?,1,?,NULL,NULL)', [$id, $id, "gallery/$id.png", $city]);
     }
 
     /** Adds a Community Builder list, filters as [column, operator, value]. */

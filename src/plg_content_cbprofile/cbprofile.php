@@ -262,8 +262,9 @@ class PlgContentcbprofile extends CMSPlugin
 					}
  
 					// create html for each profile
+					$editorfields = cblisthelper_editorfields();
 					foreach ($userprofiles as $userprofile) {
-						$output .= createoutput($userprofile, $layout, $imagesize, (int) $this->params->get('escape_values', 1) == 1);
+						$output .= createoutput($userprofile, $layout, $imagesize, $editorfields);
 					}
 
 					// intext block end
@@ -336,15 +337,12 @@ function cbprofile_orderbycolumn($orderby) {
 }
 
 
-function createoutput($userprofile, $layout, $imagesize, $escape = true ) {
+function createoutput($userprofile, $layout, $imagesize, $editorfields = array() ) {
 
 		// User data may not break out of the html and may not contain tags for other content plugins
 		foreach ($userprofile as $field => $value) {
 			if (is_string($value)) {
-				if ($escape) {
-					$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-				}
-				$userprofile[$field] = str_replace(array('{', '}'), array('&#123;', '&#125;'), $value);
+				$userprofile[$field] = cblisthelper_safevalue($value, in_array($field, $editorfields) ? 'editorta' : '');
 			}
 		}
 

@@ -14,6 +14,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Filter\InputFilter;
 
 if (!function_exists('cblisthelper_createquery')) {
 
@@ -193,6 +194,31 @@ function cblisthelper_condition($column, $operator, $value) {
 	}
 
 	return '(' . $condition . ')';
+}
+
+// User data that is safe to show in html. Only a CB editor field keeps its html, without scripts.
+function cblisthelper_safevalue($value, $fieldtype) {
+
+	if ($fieldtype == 'editorta') {
+		$tags = array('a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'code', 'dd', 'del', 'div', 'dl', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+			'hr', 'i', 'img', 'ins', 'li', 'ol', 'p', 'pre', 's', 'small', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'u', 'ul');
+		$attributes = array('href', 'src', 'alt', 'title', 'width', 'height', 'target', 'rel', 'class', 'colspan', 'rowspan');
+		$value = InputFilter::getInstance($tags, $attributes, 0, 0, 1)->clean((string) $value, 'html');
+	} else {
+		$value = htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+	}
+
+	// No tags for content plugins, the output goes through them (content.prepare)
+	return str_replace(array('{', '}'), array('&#123;', '&#125;'), $value);
+}
+
+// The columns of the CB editor fields
+function cblisthelper_editorfields() {
+
+	$db = Factory::getDbo();
+	$db->setQuery("SELECT fields.name FROM #__comprofiler_fields as fields WHERE fields.type = 'editorta'");
+
+	return array_column((array) $db->loadAssocList(), 'name');
 }
 
 } // end function_exists

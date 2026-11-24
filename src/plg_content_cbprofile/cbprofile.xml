@@ -34,15 +34,6 @@
 				description=""
 			/>
 			<field name="layout" type="filelist" default="default" label="Default template" description="" directory="/plugins/content/cbprofile/tmpl" filter=".php" exclude="" stripext="true" />
-			<field
-				name="escape_values"
-				type="radio" default="1"
-				label="Escape user data"
-				description="Shows HTML in user data as text, so that users can not place scripts with their profile. Only turn off if your own layout needs HTML of a CB field and you trust the users."
-			>
-				<option value="1">ON</option>
-				<option value="0">OFF</option>
-			</field>
 			
 			</fieldset>
 
