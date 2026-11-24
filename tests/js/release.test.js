@@ -121,6 +121,14 @@ test('changelog.xml gets the changes of a version, grouped by type', () => {
   assert.equal(addChangelog(xml, entry, '4.1.0'), xml, 'running twice changes nothing');
 });
 
+test('changelog.xml contains plain text, no markdown', () => {
+  const log = 'v4.1.0 December 2026  \nFixed: thanks to [Magnus Hasselquist](https://github.com/magnushasselquist/) for `IN`  \nNew: **bold** and <https://example.com>  \n';
+  const entry = changelogEntry(log, '4.1.0');
+  assert.match(entry, /<item>thanks to Magnus Hasselquist for IN<\/item>/);
+  assert.match(entry, /<item>bold and https:\/\/example\.com<\/item>/);
+  assert.doesNotMatch(entry, /\]\(|`|\*\*/);
+});
+
 test('only the package has an update server, and it points to updates.xml and changelog.xml', () => {
   for (const key of ['library', 'module', 'plugin']) assert.doesNotMatch(read(MANIFESTS[key]), /updateservers/);
   assert.match(read(MANIFESTS.package), /Tazzios\/cbmodulecontent\/main\/updates\.xml/);
