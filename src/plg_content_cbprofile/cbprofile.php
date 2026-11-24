@@ -263,7 +263,7 @@ class PlgContentcbprofile extends CMSPlugin
  
 					// create html for each profile
 					foreach ($userprofiles as $userprofile) {
-						$output .= createoutput($userprofile, $layout, $imagesize);
+						$output .= createoutput($userprofile, $layout, $imagesize, (int) $this->params->get('escape_values', 1) == 1);
 					}
 
 					// intext block end
@@ -336,11 +336,14 @@ function cbprofile_orderbycolumn($orderby) {
 }
 
 
-function createoutput($userprofile, $layout, $imagesize ) {
+function createoutput($userprofile, $layout, $imagesize, $escape = true ) {
 
-		// User data may not contain tags for other content plugins
+		// User data may not break out of the html and may not contain tags for other content plugins
 		foreach ($userprofile as $field => $value) {
 			if (is_string($value)) {
+				if ($escape) {
+					$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+				}
 				$userprofile[$field] = str_replace(array('{', '}'), array('&#123;', '&#125;'), $value);
 			}
 		}

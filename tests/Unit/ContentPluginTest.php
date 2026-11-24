@@ -13,9 +13,9 @@ final class ContentPluginTest extends TestCase
         Site::cbList(4);
     }
 
-    private function prepare(string $text, string $context = 'com_content.article'): string
+    private function prepare(string $text, string $context = 'com_content.article', array $settings = []): string
     {
-        $plugin  = new PlgContentcbprofile(null, ['params' => ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 140]]);
+        $plugin  = new PlgContentcbprofile(null, ['params' => $settings + ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 140]]);
         $article = (object) ['text' => $text];
         $params  = null;
         $plugin->onContentPrepare($context, $article, $params);
@@ -178,6 +178,25 @@ final class ContentPluginTest extends TestCase
 
         $this->assertStringNotContainsString('onload="', $html);
         $this->assertStringNotContainsString('onclick="', $html);
+    }
+
+    public function testUserDataIsEscaped(): void
+    {
+        Site::user(665, 'x" onerror="alert(1)<script>', 'xss', 'Utrecht');
+
+        foreach (['text-default', 'text-avatar', 'div-default', 'div-avatar'] as $layout) {
+            $html = $this->prepare("{cbprofile username=xss layout=$layout}");
+            $this->assertStringContainsString('alt="x&quot; onerror=&quot;alert(1)&lt;script&gt;"', $html, $layout);
+            $this->assertStringNotContainsString('<script', $html, $layout);
+        }
+    }
+
+    public function testEscapeCanBeTurnedOffButTagsStayHarmless(): void
+    {
+        Site::user(665, '<i>Jan</i>{loadposition x}', 'html', 'Utrecht');
+        $html = $this->prepare('{cbprofile username=html}', 'com_content.article', ['escape_values' => '0']);
+
+        $this->assertStringContainsString('<i>Jan</i>&#123;loadposition x&#125;', $html);
     }
 
     public function testTagInUserDataIsNotLeftForOtherPlugins(): void
