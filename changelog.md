@@ -7,7 +7,8 @@ Security: imagewidth, imageheight, float and layout of a {cbprofile} tag are che
 Fixed: CB list filter "contains" (LIKE) removed the other filters of the list  
 Fixed: CB list filter "IN" with text values found no users  
 Fixed: {cbprofile} with a CB list without users gave a database error, or showed the users of the tag before it  
-Fixed: avatars that are not approved were shown in the layouts div-avatar, div-default and text-avatar  
+Fixed: avatars that are not approved were shown in all layouts  
+Fixed: layout text-default had a double slash in the avatar url, and a broken image for users without an avatar  
 Fixed: layout div-avatar used a variable that does not exist (PHP warning)  
 Fixed: a closing div too much after "No userprofiles found"  
 Fixed: special characters in a {cbprofile} tag (like + in an email address) could make the whole article text empty  

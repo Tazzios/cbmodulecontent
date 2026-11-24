@@ -167,6 +167,19 @@ final class ContentPluginTest extends TestCase
         $this->assertSame([Site::DOLLY], $this->shown('{cbprofile username=Dolphine} {cbprofile cblistid=8}'));
     }
 
+    public function testTextDefaultShowsOnlyTheNameWithoutApprovedAvatar(): void
+    {
+        $tag = '{cbprofile username=Dolphine layout=text-default}';
+        $this->assertStringContainsString('src="https://example.org/images/comprofiler/gallery/653.png"', $this->prepare($tag));
+
+        foreach (['avatarapproved = 0', 'avatarapproved = 1, avatar = NULL', "avatarapproved = 1, avatar = ''"] as $set) {
+            Factory::$db->exec("UPDATE jos_comprofiler SET $set");
+            $html = $this->prepare($tag);
+            $this->assertStringNotContainsString('<img', $html, $set);
+            $this->assertStringContainsString('Dolly', $html, $set);
+        }
+    }
+
     public function testDivsAreBalanced(): void
     {
         foreach (['username=Dolphine', 'username=nobody', 'username=Dolphine intext=true', 'username=nobody intext=true'] as $tag) {
