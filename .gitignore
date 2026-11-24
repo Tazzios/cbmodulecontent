@@ -1,2 +1,7 @@
 /build/
+/dist/
+/vendor/
+composer.lock
+.phpunit.cache/
+.phpunit.result.cache
 .idea/

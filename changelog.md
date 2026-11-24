@@ -1,5 +1,5 @@
-v1.0.0 November 2026  
-New: package "CB module & content" (pkg_cbmodulecontent) with mod_cblistmodule 3.7.0, plg_content_cbprofile 1.7.0 and lib_cblisthelper 1.0.0  
+Unreleased  
+New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  
 Fixed: CB list filter "contains" (LIKE) removed the other filters of the list  
 Fixed: CB list filter "IN" with text values found no users  
