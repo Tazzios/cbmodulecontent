@@ -12,7 +12,8 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
 
-require_once( dirname(__FILE__) . '/cblisthelper.php' );
+// Shared CB list query builder, installed by pkg_cbmodulecontent as library 'cblisthelper'
+require_once JPATH_LIBRARIES . '/cblisthelper/cblisthelper.php';
 
 
 
@@ -81,7 +82,7 @@ public static function getData( $params )
 
 
 		
-		$cblistqueryArray = createcblistquerymod($list_id,null);
+		$cblistqueryArray = cblisthelper_createquery($list_id,null);
 		$fetch_sql = $cblistqueryArray['cblistselect'];
 		$cblistsortby = $cblistqueryArray['cblistsortby'];
 		$cblistsortorder = $cblistqueryArray['cblistsortorder'];

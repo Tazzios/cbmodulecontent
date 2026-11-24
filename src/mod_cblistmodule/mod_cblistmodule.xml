@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<extension type="module" version="3.6.0" client="site" method="upgrade">
+<extension type="module" version="5.0" client="site" method="upgrade">
     <name>Community Builder list module</name>
     <author>Tazzios (original Magnus Hasselquist https://github.com/magnushasselquist/hqcblistmodule) </author>
     <authorUrl>https://github.com/Tazzios</authorUrl>
-    <version>3.6.0</version>
-    <creationDate>September 2026</creationDate>
+    <version>3.7.0</version>
+    <creationDate>November 2026</creationDate>
     <license>GNU General Public License version 2 or later</license>
     <description>Displaying Users from a selected CB List in a Module.</description>
     <files>
@@ -12,7 +12,6 @@
         <filename module="mod_cblistmodule">mod_cblistmodule.php</filename>
         <filename>index.html</filename>
         <filename>helper.php</filename>
-		<filename>cblisthelper.php</filename>
     </files>
 
     <config>
@@ -156,7 +155,4 @@
     		</fieldset>
 		</fields>
     </config>
-    <updateservers>
-      <server type="extension" priority="2" name="Community Builder list module">https://raw.githubusercontent.com/tazzios/cblistmodule/master/updates.xml</server>
-    </updateservers>
 </extension>

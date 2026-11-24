@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="package" method="upgrade">
+	<name>CB module &amp; content</name>
+	<packagename>cbmodulecontent</packagename>
+	<author>Tazzios</author>
+	<authorUrl>https://github.com/Tazzios</authorUrl>
+	<packager>Tazzios</packager>
+	<packagerurl>https://github.com/Tazzios</packagerurl>
+	<creationDate>November 2026</creationDate>
+	<copyright></copyright>
+	<license>GNU General Public License version 2 or later</license>
+	<version>1.0.0</version>
+	<description>Community Builder list module and cbprofile content plugin in one package, with the shared CB list helper library.</description>
+	<blockChildUninstall>true</blockChildUninstall>
+	<files folder="packages">
+		<!-- The library first: the module and the plugin load it -->
+		<file type="library" id="cblisthelper">lib_cblisthelper.zip</file>
+		<file type="module" id="mod_cblistmodule" client="site">mod_cblistmodule.zip</file>
+		<file type="plugin" id="cbprofile" group="content">plg_content_cbprofile.zip</file>
+	</files>
+	<updateservers>
+		<server type="extension" priority="1" name="CB module &amp; content">https://raw.githubusercontent.com/Tazzios/cbmodulecontent/main/updates.xml</server>
+	</updateservers>
+</extension>

@@ -1,3 +1,6 @@
+v1.7.0 November 2026  
+Changed: part of the package "CB module & content", uses the shared cblisthelper library  
+
 v1.6.0 September 2026  
 New: J6 native compatible  
 Fixed: error when you use a userlist without filters  

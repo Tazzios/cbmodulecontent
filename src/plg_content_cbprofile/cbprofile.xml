@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<extension version="1.0" type="plugin" group="content" method="upgrade">
+<extension type="plugin" group="content" method="upgrade">
 	<name>Content - cbprofile</name>
 	<author>Tazzios</author>
-	<creationDate>September 2026</creationDate>
+	<creationDate>November 2026</creationDate>
 	<copyright></copyright>
 	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
 	<authorEmail></authorEmail>
 	<authorUrl>https://github.com/Tazzios</authorUrl>
-	<version>1.6.0</version>
+	<version>1.7.0</version>
 	<description>content plugin for CB profiles</description>
 	<files>
 		<filename plugin="cbprofile">cbprofile.php</filename>
-		<filename>cblisthelper.php</filename>
 		<filename>index.html</filename>
 		<filename>cbprofile.xml</filename>
 		<folder>tmpl</folder>
@@ -41,7 +40,4 @@
 			
 		</fields>
 	</config>
-	    <updateservers>
-      <server type="extension" priority="2" name="cbprofile">https://raw.githubusercontent.com/tazzios/cbprofilecontent/master/updates.xml</server>
-    </updateservers>
 </extension>

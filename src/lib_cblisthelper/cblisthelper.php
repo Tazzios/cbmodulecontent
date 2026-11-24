@@ -1,18 +1,23 @@
 <?php
+/**
+ * Shared helper for the "CB module & content" package (pkg_cbmodulecontent).
+ *
+ * Builds the query to get the profiles in the same way as the Community Builder list.
+ * Used by both mod_cblistmodule and plg_content_cbprofile, load it with:
+ *   require_once JPATH_LIBRARIES . '/cblisthelper/cblisthelper.php';
+ *
+ * @copyright   2022
+ * @author      Tazzios
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
-/* this file will build the query to get the profiles in the same way as the cblist.
-* By seperating it it can be easier used in other applications.
-* @copyright   2022
-* @author      Tazzios 
-* @license     GNU General Public License version 2 or later; see LICENSE.txt
-*/
 
+if (!function_exists('cblisthelper_createquery')) {
 
-	
-function createcblistquerycontent($cblistid,$cblistname) {	
+function cblisthelper_createquery($cblistid,$cblistname) {	
 	$where = '' ;
 	if (!empty($cblistid)) {
 		$where = 'listid = '. $cblistid ;
@@ -141,5 +146,5 @@ function createcblistquerycontent($cblistid,$cblistname) {
 	return $cblistquery;
 	
 }
-?>
-	
+
+} // end function_exists

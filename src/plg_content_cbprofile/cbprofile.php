@@ -10,7 +10,8 @@ use Joomla\CMS\Plugin\PluginHelper;
 //use Joomla\CMS\Categories\Categories; // needed for retrieving full file pathfor pdfimage
 
 
-require_once( dirname(__FILE__) . '/cblisthelper.php' );
+// Shared CB list query builder, installed by pkg_cbmodulecontent as library 'cblisthelper'
+require_once JPATH_LIBRARIES . '/cblisthelper/cblisthelper.php';
 /**
  * Plug-in to enable loading cb profile files into content (e.g. articles)
  * This uses the {cbprofile} syntax
@@ -286,10 +287,10 @@ function getcblistusers($cblistid,$cblistname) {
 	// call external fucntion which create the select statement
 	if (!empty($cblistid)) {
 		//$where = 'listid = '. $cblistid
-		$cblistqueryArray = createcblistquerycontent($cblistid,null);
+		$cblistqueryArray = cblisthelper_createquery($cblistid,null);
 	}
 	else {
-		$cblistqueryArray = createcblistquerycontent(null,$cblistname);
+		$cblistqueryArray = cblisthelper_createquery(null,$cblistname);
 	}
 
 	$query = $cblistqueryArray['cblistselect'] .  " ORDER BY ". $cblistqueryArray['cblistsortby'] . " " . $cblistqueryArray['cblistsortorder'] ;

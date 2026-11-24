@@ -1,3 +1,6 @@
+v3.7.0 November 2026  
+Changed: part of the package "CB module & content", uses the shared cblisthelper library  
+
 v3.6.0 September 2026  
 New: J6 native compatible  
 
