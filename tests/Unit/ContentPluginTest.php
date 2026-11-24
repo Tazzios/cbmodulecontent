@@ -57,6 +57,8 @@ final class ContentPluginTest extends TestCase
             'top'                          => ['{cbprofile cblistid=4 top=2}', [$dolly, $elly]],
             'order desc'                   => ['{cbprofile cblistid=4 order=desc}', [$duck, $elly, $dolly]],
             'orderby'                      => ['{cbprofile cblistid=4 orderby=name}', [$dolly, $duck, $elly]],
+            'orderby and order'            => ['{cbprofile cblistid=4 orderby=registerdate order=desc}', [$dolly, $elly, $duck]],
+            'username with order desc'     => ['{cbprofile username=Dolphine|DuckT order=desc}', [$duck, $dolly]],
             'parameter names any case'     => ['{cbprofile UserName=Dolphine}', [$dolly]],
             'spaces around ='              => ['{cbprofile username = Dolphine}', [$dolly]],
             'space after {'                => ['{ cbprofile username=Dolphine}', [$dolly]],
@@ -90,9 +92,106 @@ final class ContentPluginTest extends TestCase
         $this->assertSame([Site::DOLLY, Site::DUCK], $this->shown('{cbprofile cblistid=6}'));
     }
 
+    public static function maliciousTags(): array
+    {
+        return [
+            'username'      => ["{cbprofile username=x')/**/OR/**/1>0--}", []],
+            'username sub'  => ["{cbprofile username=x')/**/UNION/**/SELECT/**/password/**/FROM/**/jos_users--}", []],
+            'email'         => ["{cbprofile email=x')/**/OR/**/1>0--}", []],
+            'list id'       => ['{cbprofile cblistid=4/**/OR/**/1>0}', [653, 654, 655]],
+            'list name'     => ["{cbprofile cblistname=x'/**/OR/**/'1'>'0}", []],
+            'orderby'       => ['{cbprofile username=DuckT|Dolphine orderby=(SELECT/**/password/**/FROM/**/jos_users)}', [655, 653]],
+            'orderby pass'  => ['{cbprofile username=DuckT|Dolphine orderby=password}', [655, 653]],
+            'order'         => ['{cbprofile username=DuckT|Dolphine order=asc;DROP/**/TABLE/**/jos_users}', [655, 653]],
+            'top'           => ['{cbprofile cblistid=4 top=1;DROP}', [653, 654, 655]],
+            'layout'        => ['{cbprofile username=DuckT layout=../../../tests/Stubs/joomla}', [655]],
+        ];
+    }
+
+    #[DataProvider('maliciousTags')]
+    public function testMaliciousTag(string $text, array $expected): void
+    {
+        $this->assertSame($expected, $this->shown($text));
+        $this->assertSame('4', (string) Factory::$db->setQuery('SELECT COUNT(*) n FROM #__users')->loadAssoc()['n']);
+
+        foreach (Factory::$db->log as $query) {
+            // Nothing from the tag outside a quoted value.
+            $this->assertDoesNotMatchRegularExpression('#/\*\*/|password|DROP#', preg_replace("/'(?:[^']|'')*'/", "''", $query));
+        }
+    }
+
+    public function testSpecialCharactersInTag(): void
+    {
+        Site::user(661, 'Plus', 'plus+user', 'Utrecht');
+
+        $this->assertSame([661], $this->shown('before {cbprofile username=plus+user} after'));
+        $this->assertSame('a No userprofiles found b', $this->prepare('a {cbprofile username=x**(} b'));
+    }
+
+    public function testHtmlInTagValuesIsEscaped(): void
+    {
+        $html = $this->prepare('{cbprofile username=Dolphine imagewidth=1"onload="alert(1) float=left"onclick="alert(1)}');
+
+        $this->assertStringNotContainsString('onload="', $html);
+        $this->assertStringNotContainsString('onclick="', $html);
+    }
+
+    public function testTagInUserDataIsNotLeftForOtherPlugins(): void
+    {
+        Site::user(660, '{loadposition secret}', 'evil', 'Utrecht');
+        $html = $this->prepare('{cbprofile username=evil}');
+
+        $this->assertStringContainsString('&#123;loadposition secret&#125;', $html);
+        $this->assertStringNotContainsString('{', $html);
+    }
+
     public function testUnknownUserGivesMessage(): void
     {
-        $this->assertStringContainsString('No userprofiles found', $this->prepare('{cbprofile username=nobody}'));
+        $this->assertSame('<p>No userprofiles found</p>', $this->prepare('<p>{cbprofile username=nobody}</p>'));
+    }
+
+    public function testEmptyListGivesMessage(): void
+    {
+        Site::cbList(8, [['name', '=', 'nobody']], 'empty');
+
+        $this->assertSame('No userprofiles found', $this->prepare('{cbprofile cblistid=8}'));
+        $this->assertSame('No userprofiles found', $this->prepare('{cbprofile cblistname=empty}'));
+        $this->assertSame('No userprofiles found', $this->prepare('{cbprofile cblistid=99}'));
+        $this->assertSame('No userprofiles found', $this->prepare('{cbprofile}'));
+    }
+
+    public function testEmptyListDoesNotShowUsersOfTheTagBefore(): void
+    {
+        Site::cbList(8, [['name', '=', 'nobody']], 'empty');
+
+        $this->assertSame([Site::DOLLY], $this->shown('{cbprofile username=Dolphine} {cbprofile cblistid=8}'));
+    }
+
+    public function testDivsAreBalanced(): void
+    {
+        foreach (['username=Dolphine', 'username=nobody', 'username=Dolphine intext=true', 'username=nobody intext=true'] as $tag) {
+            $html = strtolower($this->prepare("{cbprofile $tag layout=div-avatar}"));
+            $this->assertSame(substr_count($html, '<div'), substr_count($html, '</div'), $tag);
+        }
+    }
+
+    public static function avatarLayouts(): array
+    {
+        return [['div-avatar'], ['div-default'], ['text-avatar']];
+    }
+
+    #[DataProvider('avatarLayouts')]
+    public function testOnlyApprovedAvatarIsShown(string $layout): void
+    {
+        $tag = "{cbprofile username=Dolphine layout=$layout}";
+        $this->assertStringContainsString('gallery/653.png', $this->prepare($tag));
+
+        Factory::$db->exec('UPDATE jos_comprofiler SET avatarapproved = 0');
+        $this->assertStringContainsString('tnnophoto_n.png', $this->prepare($tag));
+        $this->assertStringNotContainsString('gallery/653.png', $this->prepare($tag));
+
+        Factory::$db->exec('UPDATE jos_comprofiler SET avatarapproved = 1, avatar = NULL');
+        $this->assertStringContainsString('tnnophoto_n.png', $this->prepare($tag));
     }
 
     public function testImageSizeFromPluginSettingsAndFromTag(): void

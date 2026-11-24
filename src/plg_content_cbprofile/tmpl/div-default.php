@@ -10,7 +10,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Uri\Uri;
 
 /* Check if there is an approved avatar else use the nophoto image*/
-if ($userprofile['avatarapproved']=1 and strlen($userprofile['avatar'])>0 ){
+if ($userprofile['avatarapproved']==1 and strlen((string) $userprofile['avatar'])>0 ){
 	$avatarsource= URI::base().'images/comprofiler/'. $userprofile['avatar'];
 }
 else {

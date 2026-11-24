@@ -82,6 +82,8 @@ class PlgContentcbprofile extends CMSPlugin
 				// get the profile ids bij cblistid,username or email
 				$where = '';
 				$order = '';
+				$direction = '';
+				$db = Factory::getDbo();
 				
 		
 				
@@ -102,8 +104,10 @@ class PlgContentcbprofile extends CMSPlugin
 						
 						$count ++;
 					}
-					$where .= ')';
-					$order .= ')';
+					if ($count>0) {
+						$where .= ')';
+						$order .= ')';
+					}
 				}
 				
 				// get profile ids by cblistname
@@ -123,8 +127,10 @@ class PlgContentcbprofile extends CMSPlugin
 						$order .= $user['id'];
 						$count ++;
 					}
-					$where .= ')';
-					$order .= ')';
+					if ($count>0) {
+						$where .= ')';
+						$order .= ')';
+					}
 					
 				}
 				
@@ -142,13 +148,13 @@ class PlgContentcbprofile extends CMSPlugin
 							$where .= " , ";	
 							$order .= " , "; 
 						}
-						$where .=  '\'' . $username . '\' ';
-						$order .= '\'' . $username . '\' ';
+						$where .= $db->quote($username) . ' ';
+						$order .= $db->quote($username) . ' ';
 						
 						$count ++;
 					}
 					$where .= ')';
-					$order .= ') asc';
+					$order .= ')';
 				}
 				
 				// OR get profile ids by  email
@@ -164,40 +170,46 @@ class PlgContentcbprofile extends CMSPlugin
 							$where .= " , ";	
 							$order .= " , "; 
 						}									
-						$where .=  '\'' . $email . '\' ';
-						$order .= '\'' . $email . '\' ';
+						$where .= $db->quote($email) . ' ';
+						$order .= $db->quote($email) . ' ';
 						$count ++;
 					}
 					$where .= ')';
-					$order .= ') asc';
+					$order .= ')';
 				}
 				//var_dump($query . $order );
 				//var_dump($where);
 				
 				/* order  list selects by tagparameter */		
+				// only existing columns and asc, desc or random, other values are ignored
 				if (isset($tagparameters['orderby']) ) {
-					$order = " ". $tagparameters['orderby'] ;
+					$column = cbprofile_orderbycolumn($tagparameters['orderby']);
+					if ($column <> '') {
+						$order = ' ' . $column;
+					}
 				}
 				if(isset($tagparameters['order']) ) {
-					if ($tagparameters['order']=='random'){
-						$order = ' rand()';			
-					} else {
-						$order .= ' ' . $tagparameters['order'];
+					$direction = strtolower($tagparameters['order']);
+					if ($direction=='random'){
+						$order = ' rand()';
 					}
+				}
+				if ($direction=='asc' or $direction=='desc') {
+					$order .= ' ' . $direction;
 				}
 
 
 				// number of users to show
 				$top = 0; // 0 is unlimited
 				if (isset($tagparameters['top']) AND is_numeric($tagparameters['top']) ){
-					$top = $tagparameters['top'];		
+					$top = (int) $tagparameters['top'];
 				}
 
 				
 				// get records
+				$userprofiles = array(); // no users of an earlier tag
 				if ($where<>'') {
 				// Get the users data
-				$db = Factory::getDbo();
 				$query = $db->getQuery(true)
 					->select(' username, name, email, #__comprofiler.* ')
 					->from('#__users', 'users')
@@ -217,7 +229,7 @@ class PlgContentcbprofile extends CMSPlugin
 				if (!empty($userprofiles)) {
 
 					//check if an layout is given else use contentplugin default
-					if (isset($tagparameters['layout']) ) {
+					if (isset($tagparameters['layout']) and preg_match('/^[\w:-]+$/', $tagparameters['layout']) ) {
 						$layout = $tagparameters['layout'];
 					} else {
 						$layout = $this->params->get('layout');
@@ -225,21 +237,21 @@ class PlgContentcbprofile extends CMSPlugin
 
 					//check if an image widht is given else use contentplugin default
 					if (isset($tagparameters['imagewidth']) ) {
-						$imagesize['width'] = $tagparameters['imagewidth'];
+						$imagesize['width'] = htmlspecialchars($tagparameters['imagewidth'], ENT_QUOTES);
 					} else {
 						$imagesize['width'] = $this->params->get('imagewidth');
 					}
 					
 					//check if an image height is given else use contentplugin default
 					if (isset($tagparameters['imageheight']) ) {
-						$imagesize['height'] = $tagparameters['imageheight'];
+						$imagesize['height'] = htmlspecialchars($tagparameters['imageheight'], ENT_QUOTES);
 					} else {
 						$imagesize['height'] = $this->params->get('imageheight');
 					}
 					
 					//check if float is given
 					if (isset($tagparameters['float']) ) {
-						$style = 'float:'.$tagparameters['float'].';';
+						$style = 'float:'.htmlspecialchars($tagparameters['float'], ENT_QUOTES).';';
 					} else {
 						$style = 'display: grid;grid-template-columns: repeat(auto-fit, minmax('.$imagesize['width'].'px, 1fr));';
 					}
@@ -253,14 +265,14 @@ class PlgContentcbprofile extends CMSPlugin
 					foreach ($userprofiles as $userprofile) {
 						$output .= createoutput($userprofile, $layout, $imagesize);
 					}
-					} else {
-						$output = 'No userprofiles found';
-					}
 
 					// intext block end
 					if (!isset($tagparameters['intext']) || $tagparameters['intext'] <> 'true') {
 						$output .= '</div>';
 					}
+				} else {
+					$output = 'No userprofiles found';
+				}
 
 					
 							
@@ -271,8 +283,8 @@ class PlgContentcbprofile extends CMSPlugin
 				
 				// We should replace only first occurrence in order to allow positions with the same name to regenerate their content:
 				
-				//escape username seperator |
-				$replace = str_replace('|','\|', $match[0]);
+				//escape special characters in the tag, like the username seperator |
+				$replace = preg_quote($match[0], '|');
 				$article->text = preg_replace("|$replace|", addcslashes($output, '\\$'), $article->text, 1);
 			
 		} // end foreach matches
@@ -307,8 +319,31 @@ function getcblistusers($cblistid,$cblistname) {
 }
 
 
+// Returns the quoted name of the column to order by, empty if it is not an allowed column.
+function cbprofile_orderbycolumn($orderby) {
+
+	$db = Factory::getDbo();
+	$columns = array_keys($db->getTableColumns('#__users') + $db->getTableColumns('#__comprofiler'));
+	$notallowed = array('password', 'params', 'activation', 'otpkey', 'otep', 'cbactivation', 'registeripaddr');
+
+	foreach ($columns as $column) {
+		if (strtolower($column) == strtolower($orderby) and !in_array(strtolower($column), $notallowed)) {
+			return $db->quoteName($column);
+		}
+	}
+
+	return '';
+}
+
+
 function createoutput($userprofile, $layout, $imagesize ) {
 
+		// User data may not contain tags for other content plugins
+		foreach ($userprofile as $field => $value) {
+			if (is_string($value)) {
+				$userprofile[$field] = str_replace(array('{', '}'), array('&#123;', '&#125;'), $value);
+			}
+		}
 
 		// Get the path for the voting form layout file
 		$path = PluginHelper::getLayoutPath('content', 'cbprofile', $layout);
