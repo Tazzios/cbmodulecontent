@@ -1,0 +1,83 @@
+name: Offer update to existing installs
+
+# Second step of a release, started by hand from the Actions tab after the
+# workflow "Release". Adds the version to updates.xml, adds its changes to
+# changelog.xml (the Changelog button in Joomla's update list) and opens a pull
+# request with that change.
+#
+# Nothing is offered until you merge that pull request: from that moment
+# every site with the package sees the update in Joomla.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to offer, for example 4.0.0 (empty = newest release)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  offer:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download the package from the release
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            tag="v$INPUT_VERSION"
+          else
+            tag=$(gh release view --json tagName --jq .tagName)
+          fi
+          version="${tag#v}"
+          draft=$(gh release view "$tag" --json isDraft --jq .isDraft)
+          if [ "$draft" = "true" ]; then
+            echo "::error::Release $tag is still a draft. Publish it first, otherwise sites cannot download it."; exit 1
+          fi
+          mkdir -p dist
+          gh release download "$tag" --pattern "pkg_cbmodulecontent-$version.zip" --dir dist
+          sha=$(sha256sum "dist/pkg_cbmodulecontent-$version.zip" | cut -c1-64)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Add the version to the update files
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          SHA256: ${{ steps.release.outputs.sha256 }}
+        run: |
+          node tools/release.js update-xml "$VERSION" --sha256 "$SHA256"
+          sudo apt-get update -q && sudo apt-get install -y -q libxml2-utils
+          xmllint --noout updates.xml changelog.xml
+          rm -rf dist
+
+      - name: Open a pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: offer-update/${{ steps.release.outputs.version }}
+          commit-message: Offer version ${{ steps.release.outputs.version }} to existing installs
+          title: Offer version ${{ steps.release.outputs.version }} to existing installs
+          body: |
+            Adds version ${{ steps.release.outputs.version }} to `updates.xml`, and its changes from changelog.md to `changelog.xml`.
+
+            **Merging this pull request publishes the update:** every Joomla site with the package then sees version ${{ steps.release.outputs.version }} under System, Update, Extensions.
+
+            - Download: https://github.com/${{ github.repository }}/releases/download/v${{ steps.release.outputs.version }}/pkg_cbmodulecontent-${{ steps.release.outputs.version }}.zip
+            - sha256: `${{ steps.release.outputs.sha256 }}`
+
+            Sites with only the separate module or plugin (before 4.0.0) look in the old repositories, see "Separate installs" in README.md.
+          delete-branch: true

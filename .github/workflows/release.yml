@@ -1,0 +1,94 @@
+name: Release
+
+# Started by hand from the Actions tab with a version, for example 4.0.0.
+# Sets that version in the manifests, turns "Unreleased" in changelog.md into
+# the release notes, builds pkg_cbmodulecontent-<version>.zip (library, module
+# and content plugin together) and publishes a GitHub release with it.
+#
+# Existing installs are NOT offered the update yet. Check the release first,
+# then run the workflow "Offer update to existing installs".
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, for example 4.0.0'
+        required: true
+      draft:
+        description: 'Create the release as a draft (commit and tag are still public)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, mbstring, pdo_sqlite
+          coverage: none
+
+      - name: Check the version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 4.0.0"; exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists"; exit 1
+          fi
+
+      - name: Set the version and close the changelog section
+        run: node tools/release.js prepare "$VERSION"
+
+      - name: Test
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libxml2-utils
+          xmllint --noout pkg_cbmodulecontent.xml src/*/*.xml
+          node --test tests/js/*.test.js
+          composer update --no-interaction --no-progress --prefer-dist
+          vendor/bin/phpunit
+
+      - name: Build the package
+        run: |
+          node tools/release.js build
+          node tools/release.js notes "$VERSION" > dist/notes.md
+          cat dist/notes.md
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkg_cbmodulecontent.xml src/*/*.xml changelog.md
+          git commit -m "Release $VERSION"
+          git tag "v$VERSION"
+          git push origin HEAD:main "v$VERSION"
+
+      - name: Create the GitHub release
+        run: |
+          gh release create "v$VERSION" "dist/pkg_cbmodulecontent-$VERSION.zip" \
+            --title "v$VERSION" --notes-file dist/notes.md --verify-tag \
+            ${{ inputs.draft && '--draft' || '' }}
+          {
+            echo "### Release v$VERSION created"
+            echo
+            echo "Existing installs do not get the update yet."
+            echo "Test the zip, then run **Offer update to existing installs** with version $VERSION."
+          } >> "$GITHUB_STEP_SUMMARY"
