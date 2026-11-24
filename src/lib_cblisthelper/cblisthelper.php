@@ -81,28 +81,29 @@ function cblisthelper_createquery($cblistid,$cblistname) {
 					   
 					case "LIKE"; //CB Does contain	
 						$value = "'%" . trim($value,'\'"') . "%'"; // any combination of ' and "
-						$select_sql =  "(".$filter['column'] . " LIKE " . $value . ")"	; 		
+						$select_sql .=  "(".$filter['column'] . " LIKE " . $value . ")"; // append, do not overwrite earlier filters
 						break;
 
 					case "IN"; //CB IN	
-						$i = 0;
+						$j = 0;
 						$include = "";
-						//loop al the values from the in filter value. Fetch original value so no aurrounding qoutes are present
-						foreach ((explode(",",$filter['value'])) as $value) {						
-							// Start with separator is not first one.
-							if ($i>0)  {
+						//loop all the values from the in filter value. Fetch original value so no surrounding quotes are present
+						foreach ((explode(",",$filter['value'])) as $invalue) {
+							$invalue = trim($invalue);
+							// Start with separator if not first one.
+							if ($j>0)  {
 								$include .= ", " ;
 							}
 
-							// place quotes if text
-							if (!is_numeric($value)) {
-								$value = "'".$filter['value']."'";
-							} 
+							// place quotes around this single value if text
+							if (!is_numeric($invalue)) {
+								$invalue = "'". str_replace("'", "''", trim($invalue,'\'"')) ."'";
+							}
 
-							$include .= "".$value."";
-							$i++; 
+							$include .= $invalue;
+							$j++;
 						}
-						$select_sql .=  "".$filter['column'] . " IN (". $include .") ";
+						$select_sql .=  "(".$filter['column'] . " IN (". $include ."))";
 						break;
 
 					default:
