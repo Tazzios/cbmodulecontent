@@ -11,6 +11,7 @@ Fixed: avatars that are not approved were shown in all layouts
 Fixed: layout text-default had a double slash in the avatar url, and a broken image for users without an avatar  
 Fixed: layout div-avatar used a variable that does not exist (PHP warning)  
 Fixed: a closing div too much after "No userprofiles found"  
+Fixed: a username with a space did not work, use quotes: {cbprofile username="Jan Jansen"}  
 Fixed: special characters in a {cbprofile} tag (like + in an email address) could make the whole article text empty  
 Improved: cblisthelper.php is shared as a library instead of a copy in the module and the plugin  
 Changed: updates come from the package update server, the module and plugin no longer have their own  

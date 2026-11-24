@@ -70,8 +70,8 @@ class PlgContentcbprofile extends CMSPlugin
 				// replace space for , if the text is not between qoutes. Special for the linktext
 				$tagparams = preg_replace('~\s+(?=([^"]*"[^"]*")*[^"]*$)~',',', $tagparams);			
 				
-				// replace existing spaces which should only exist between qoutes for %20. Before output it will be changed back
-				$tagparams = str_replace(' ','%20', $tagparams); //replace space for dummy space
+				// replace existing spaces which should only exist between qoutes for a character that can not be in a name. Before output it will be changed back
+				$tagparams = str_replace(' ', "\x1F", $tagparams); //replace space for dummy space
 										
 				// create named array for key and values , key to lower case
 				preg_match_all("/([^,= ]+)=([^,= ]+)/", $tagparams, $r); 
@@ -112,7 +112,7 @@ class PlgContentcbprofile extends CMSPlugin
 				
 				// get profile ids by cblistname
 				elseif (isset($tagparameters['cblistname']) ) {
-					$cblistname = str_replace('%20', ' ' ,trim($tagparameters['cblistname'],'"'))  ;
+					$cblistname = str_replace(array("\x1F", '%20'), ' ' ,trim($tagparameters['cblistname'],'"'))  ;
 
 					$count = 0;
 					foreach (getcblistusers(null,$cblistname) as $user) {					
@@ -137,7 +137,7 @@ class PlgContentcbprofile extends CMSPlugin
 				
 				// OR get profile ids by  username
 				elseif (isset($tagparameters['username']) ) {	
-					$usernamelist = explode('|', trim($tagparameters['username'],'"') );			
+					$usernamelist = explode('|', str_replace("\x1F", ' ', trim($tagparameters['username'],'"')) );			
 					$count = 0;
 					
 					foreach ($usernamelist as $username) {
@@ -159,7 +159,7 @@ class PlgContentcbprofile extends CMSPlugin
 				
 				// OR get profile ids by  email
 				elseif (isset($tagparameters['email']) ) {
-					$emaillist = explode('|', trim($tagparameters['email'],'"') );	
+					$emaillist = explode('|', str_replace("\x1F", ' ', trim($tagparameters['email'],'"')) );	
 					$count = 0;
 					
 					foreach ($emaillist as $email) {

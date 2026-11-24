@@ -128,6 +128,50 @@ final class ContentPluginTest extends TestCase
         $this->assertSame('a No userprofiles found b', $this->prepare('a {cbprofile username=x**(} b'));
     }
 
+    public function testUsernameWithSpace(): void
+    {
+        Site::user(662, 'Jan', 'Jan Jansen', 'Utrecht');
+
+        $this->assertSame([662], $this->shown('{cbprofile username="Jan Jansen"}'));
+        $this->assertSame([662, Site::DUCK], $this->shown('{cbprofile username="Jan Jansen|DuckT"}'));
+        $this->assertSame([Site::DUCK, 662], $this->shown('{cbprofile username="DuckT|Jan Jansen" layout=div-avatar imagewidth=20}'));
+        $this->assertSame([662], $this->shown('a {cbprofile layout=div-avatar username="Jan Jansen"} b'));
+        $this->assertSame([], $this->shown('{cbprofile username="Jan  Jansen"}'));
+        $this->assertSame([], $this->shown('{cbprofile username="JanJansen"}'));
+    }
+
+    public function testRealPercent20InUsernameIsKept(): void
+    {
+        Site::user(663, 'Percent', 'a%20b', 'Utrecht');
+        Site::user(664, 'Space', 'a b', 'Utrecht');
+
+        $this->assertSame([663], $this->shown('{cbprofile username=a%20b}'));
+        $this->assertSame([664], $this->shown('{cbprofile username="a b"}'));
+        $this->assertSame([663, 664], $this->shown('{cbprofile username="a%20b|a b"}'));
+    }
+
+    public function testListNameWithPercent20StillWorks(): void
+    {
+        $this->assertSame([653, 654, 655], $this->shown('{cbprofile cblistname=all%20users}'));
+    }
+
+    public function testEmailInQuotes(): void
+    {
+        Factory::$db->exec('UPDATE jos_users SET email = ? WHERE id = ?', ['duck toy@example.org', Site::DUCK]);
+
+        $this->assertSame([Site::DOLLY], $this->shown('{cbprofile email="dolphine@example.org"}'));
+        $this->assertSame([Site::DOLLY, Site::ELLY], $this->shown('{cbprofile email="dolphine@example.org|elifante@example.org"}'));
+        $this->assertSame([Site::DUCK], $this->shown('{cbprofile email="duck toy@example.org"}'));
+    }
+
+    public function testMaliciousUsernameWithSpaces(): void
+    {
+        Site::user(662, 'Jan', 'Jan Jansen', 'Utrecht');
+
+        $this->assertSame([], $this->shown('{cbprofile username="x\') OR 1>0 -- "}'));
+        $this->assertSame([], $this->shown('{cbprofile email="x\') OR 1>0 -- "}'));
+    }
+
     public function testHtmlInTagValuesIsEscaped(): void
     {
         $html = $this->prepare('{cbprofile username=Dolphine imagewidth=1"onload="alert(1) float=left"onclick="alert(1)}');

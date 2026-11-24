@@ -37,6 +37,9 @@ Show the user with following emailadresses
 Show the user with username admin and Bert with avatar resized to 20
 >{cbprofile username=admin|Bert imagewidth=20 imageheight=20}
 
+Show users with a space in the username, use quotes around all names
+>{cbprofile username="Jan Jansen|Bert"}
+
 Show user with username admin with a small picture and layout intext.
 >{cbprofile username=admin imagewidth=20 imageheight=20 layout=text-default intext=true } 
 
