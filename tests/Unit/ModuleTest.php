@@ -145,9 +145,151 @@ final class ModuleTest extends TestCase
         $this->assertStringNotContainsString('{', $html);
     }
 
-    public function testDebugShowsTheQuery(): void
+    public function testDebugIsOnlyForSuperUsers(): void
     {
+        $this->assertStringNotContainsString('DEBUG', modcbListHelper::getData($this->params(['debug' => '1'])));
+
+        Factory::$superUser = true;
         $this->assertStringContainsString('DEBUG: <pre>SELECT DISTINCT', modcbListHelper::getData($this->params(['debug' => '1'])));
+        $this->assertStringNotContainsString('DEBUG', modcbListHelper::getData($this->params()));
+    }
+
+    public function testDebugQueryIsEscaped(): void
+    {
+        Factory::$superUser = true;
+        Site::cbList(5, [['name', '=', '<b>{loadposition x}']], 'html');
+        $html = modcbListHelper::getData($this->params(['listid' => '5', 'debug' => '1']));
+
+        $this->assertStringContainsString('&lt;b&gt;&#123;loadposition x&#125;', $html);
+    }
+
+    private function setUserData(string $column, $value): void
+    {
+        $table = $column === 'name' ? 'jos_users' : 'jos_comprofiler';
+        Factory::$db->exec("UPDATE $table SET $column = ? WHERE id = ?", [$value, Site::DOLLY]);
+    }
+
+    public function testUserDataIsEscaped(): void
+    {
+        $this->setUserData('name', 'x" onerror="alert(1)');
+        $this->setUserData('cb_city', '<script>alert(1)</script>\'');
+        $html = modcbListHelper::getData($this->params(['template' => '<img alt="[name]"> [cb_city]']));
+
+        $this->assertStringContainsString('<img alt="x&quot; onerror=&quot;alert(1)"> &lt;script&gt;alert(1)&lt;/script&gt;&#039;', $html);
+        $this->assertStringNotContainsString('<script', $html);
+    }
+
+    public function testUserDataIsEscapedInARule(): void
+    {
+        $this->setUserData('name', 'x" onerror="alert(1)');
+        $html = modcbListHelper::getData($this->params([
+            'template' => '[show]',
+            'rules'    => ['r' => ['tag_name' => 'show', 'htmlcode' => '<img alt="[name]">', 'htmlcode_no' => '']],
+        ]));
+
+        $this->assertStringContainsString('<img alt="x&quot; onerror=&quot;alert(1)">', $html);
+    }
+
+    public function testEscapeCanBeTurnedOffButTagsStayHarmless(): void
+    {
+        $this->usePlugin();
+        $this->setUserData('cb_city', '<i>Utrecht</i>{cbprofile username=DuckT}');
+        $html = modcbListHelper::getData($this->params(['template' => '[cb_city]', 'escape_values' => '0']));
+
+        $this->assertStringContainsString('<i>Utrecht</i>&#123;cbprofile username=DuckT&#125;', $html);
+        $this->assertStringNotContainsString('&user=', $html);
+    }
+
+    public function testTagsInUserDataAreNotReplaced(): void
+    {
+        $this->setUserData('cb_city', '[username] [secret]');
+        $html = modcbListHelper::getData($this->params([
+            'template' => '<b>[cb_city]</b>',
+            'rules'    => ['r' => ['tag_name' => 'secret', 'htmlcode' => 'SECRET', 'htmlcode_no' => '']],
+        ]));
+
+        $this->assertStringContainsString('<b>[username] [secret]</b>', $html);
+        $this->assertStringNotContainsString('SECRET', $html);
+    }
+
+    public function testUnknownTagStaysAndNamesAreCaseInsensitive(): void
+    {
+        $this->assertSame(['Dolly [unknown]', 'Elly elifant [unknown]', 'Duck Toy [unknown]'], $this->names(['template' => '<b>[NAME] [unknown]</b>']));
+    }
+
+    public function testPasswordCanNotBeUsedAsTag(): void
+    {
+        $html = modcbListHelper::getData($this->params(['template' => '<b>[password]</b>']));
+
+        $this->assertStringContainsString('<b>[password]</b>', $html);
+        $this->assertStringNotContainsString('hash653', $html);
+    }
+
+    public function testRulesForAvatarLikeTheDefaultSettings(): void
+    {
+        $rules = [
+            'rules0' => ['tag_name' => 'avatar', 'htmlcode' => '[avatar]', 'htmlcode_no' => 'nophoto.png'],
+            'rules1' => ['tag_name' => 'show_avatar', 'htmlcode' => '<a href="p/[user_id]"><img src="[avatar]" alt="[name]"></a>', 'htmlcode_no' => 'x'],
+        ];
+        $set = ['template' => '<b>[show_avatar]</b>', 'rules' => $rules, 'user-limit' => 1];
+
+        $this->assertSame(['<a href="p/653"><img src="https://example.org/images/comprofiler/gallery/653.png" alt="Dolly"></a>'], $this->names($set));
+        $this->setUserData('avatarapproved', 0);
+        $this->assertSame(['<a href="p/653"><img src="nophoto.png" alt="Dolly"></a>'], $this->names($set));
+        $this->assertSame(['no image available'], $this->names(['template' => '<b>[avatar]</b>', 'user-limit' => 1]));
+    }
+
+    public function testRuleForFieldWithAndWithoutData(): void
+    {
+        $rules = ['r' => ['tag_name' => 'cb_city', 'htmlcode' => 'in [cb_city]', 'htmlcode_no' => 'nowhere']];
+        $set   = ['template' => '<b>[cb_city]</b>', 'rules' => $rules, 'user-limit' => 1];
+
+        $this->assertSame(['in Utrecht'], $this->names($set));
+        $this->setUserData('cb_city', '');
+        $this->assertSame(['nowhere'], $this->names($set));
+    }
+
+    public function testRulesThatUseEachOtherStop(): void
+    {
+        $rules = [
+            'a' => ['tag_name' => 'one', 'htmlcode' => '1[two]', 'htmlcode_no' => ''],
+            'b' => ['tag_name' => 'two', 'htmlcode' => '2[one]', 'htmlcode_no' => ''],
+        ];
+
+        $this->assertSame(['12'], $this->names(['template' => '<b>[one]</b>', 'rules' => $rules, 'user-limit' => 1]));
+    }
+
+    public function testLabelIsFromTheFieldItself(): void
+    {
+        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (99,'r','Wrong')");
+        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'r','Red')");
+        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'b','')");
+        $set = ['template' => '<b>[cb_color]</b>', 'user-limit' => 1];
+
+        foreach (['r' => 'Red', 'b' => 'b', 'r|*|b' => 'Red b', "o'x" => 'o&#039;x', 'gone' => 'gone'] as $value => $shown) {
+            $this->setUserData('cb_color', $value);
+            $this->assertSame([$shown], $this->names($set), $value);
+        }
+    }
+
+    public function testLimitZeroShowsEverybody(): void
+    {
+        $this->assertCount(3, $this->names(['user-limit' => 0]));
+        $this->assertCount(1, $this->names(['user-limit' => 1]));
+    }
+
+    public function testProfileUrlAndSiteUrl(): void
+    {
+        $this->assertSame(
+            ['/route?option=com_comprofiler&amp;view=userprofile&amp;user=653 https://example.org/'],
+            $this->names(['template' => '<b>[profile_url] [site_url]</b>', 'user-limit' => 1])
+        );
+    }
+
+    public function testOrderByIdAndUnknownField(): void
+    {
+        $this->assertSame(['Duck Toy', 'Elly elifant', 'Dolly'], $this->names(['orderby' => 'id', 'sortorder' => 'desc']));
+        $this->assertSame(['Dolly', 'Elly elifant', 'Duck Toy'], $this->names(['orderby' => 'cb_gone', 'sortorder' => 'asc']));
     }
 
     public function testEmptyListGivesNoUsers(): void
@@ -155,6 +297,7 @@ final class ModuleTest extends TestCase
         Site::cbList(7, [['name', '=', 'nobody']], 'empty');
 
         $this->assertSame([], $this->names(['listid' => '7']));
+        Factory::$superUser = true;
         $this->assertStringContainsString('Empty list', modcbListHelper::getData($this->params(['listid' => '7', 'debug' => '1'])));
     }
 }

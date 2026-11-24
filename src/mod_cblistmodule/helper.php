@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 
 // Shared CB list query builder, installed by pkg_cbmodulecontent as library 'cblisthelper'
@@ -39,34 +40,25 @@ public static function getData( $params )
 		$arr = (array) $subform;
 		
 		$rules = array();
-		$i=0;
-		$additional_names = '';
 		foreach ($arr as $value)
 		{
-			
-			$rules[$i]['tag_name']= strtolower($value->tag_name);		
-			if (isset($value->accesslevel) ) {
-				$rules[$i]['accesslevel']= $value->accesslevel;
-			} 
-			$rules[$i]['htmlcode'] = $value->htmlcode;
-			$rules[$i]['htmlcode_no'] = $value->htmlcode_no;
-			
-			$additional_names .= " UNION SELECT '". strtolower($value->tag_name). "' AS name, 'rule' as type ";
-			
-			$i++;			
+			// a rule wins from a CB field with the same name, the first rule wins from other rules
+			$tag_name = strtolower(trim($value->tag_name ?? ''));
+			if ($tag_name <> '' and !isset($rules[$tag_name])) {
+				$rules[$tag_name] = array(
+					'accesslevel' => (array) ($value->accesslevel ?? array()),
+					'htmlcode' => (string) ($value->htmlcode ?? ''),
+					'htmlcode_no' => (string) ($value->htmlcode_no ?? ''),
+				);
+			}
 		}
 
-		
-		// get all the fields that could possibly be part of template to be replaced to get us something to loop through. Also add id and user_id as fields.
+
+		// get all the fields that could possibly be part of template to be replaced. Columns with security data can not be used.
 		$db = Factory::getDbo();
-		$query = "SELECT fields.name, fields.type FROM #__comprofiler_fields as fields
-			WHERE (fields.table = '#__users' OR fields.table = '#__comprofiler') and name not in ('password','params') and fields.tablecolumns <> ''
-			UNION SELECT 'id' AS name, 'id' as type 
-			UNION SELECT 'user_id' AS name, 'id' as type   ";
-		// add additional names created in the parameters 
-		$query .= $additional_names ;
-		// retrieve fields from type images as first. this way other tags in the htmlcode then from the image will also be replaced without additional while loop
-		$query .=  " order by FIELD(type,'image' ) desc";
+		$query = "SELECT fields.fieldid, fields.name, fields.type FROM #__comprofiler_fields as fields
+			WHERE (fields.table = '#__users' OR fields.table = '#__comprofiler') and fields.tablecolumns <> ''
+			and fields.name not in ('password','params','otpKey','otep','activation','requireReset','resetCount','lastResetTime','authProvider','cbactivation')";
 		$db->setQuery($query);
 		$fields = $db->loadAssocList();
 
@@ -89,11 +81,11 @@ public static function getData( $params )
 		$cblistsortorder = $cblistqueryArray['cblistsortorder'];
 		
 		
-	if ($list_orderby=='list_default' or $list_orderby=='')  {
-		$list_orderby = $cblistsortby; 
-	}
-	
-	
+	// the field to order by with its table, the list default if it does not exist
+	$orderby_column = ($list_orderby=='list_default' or $list_orderby=='') ? '' : cblisthelper_column($list_orderby);
+	$list_orderby = $orderby_column <> '' ? $orderby_column : $cblistsortby;
+
+
 
 		// Sort order 
 	   switch  ($list_sortorder) {
@@ -115,9 +107,10 @@ public static function getData( $params )
 	//Add ordering if list is configured for that
 	if ($userlistorder <>'') { $fetch_sql .= " ".$userlistorder; }
 		
-	//Apply limit
-	$fetch_sql .= " LIMIT ".$params->get('user-limit');
-	
+	//Apply limit, 0 is all users
+	$userlimit = (int) $params->get('user-limit', 10);
+	if ($userlimit > 0) { $fetch_sql .= " LIMIT ".$userlimit; }
+
 	// autofit or fixed amount of columns
 	if ($params->get('columns') == 0 ) { 
 		$columns= "auto-fit";
@@ -135,17 +128,20 @@ public static function getData( $params )
 
 	// Now, lets use the final SQL to get all Users from Joomla/CB
 	
-	$debug_text= '';				
-	if ($list_debug == 1) {  $debug_text .= "<p>DEBUG: <pre>".$fetch_sql."</pre></p>"; }
+	$debug_text= '';
+	// The query is only shown to Super Users
+	$list_debug = ($list_debug == 1 and Factory::getUser()->authorise('core.admin')) ? 1 : 0;
+	if ($list_debug == 1) {  $debug_text .= "<p>DEBUG: <pre>".str_replace(array('{', '}'), array('&#123;', '&#125;'), htmlspecialchars($fetch_sql, ENT_QUOTES, 'UTF-8'))."</pre></p>"; }
 	$db->setQuery($fetch_sql);
 	$persons = $db->loadAssocList();
+	$escape = (int) $params->get('escape_values', 1) == 1;
 	if (!empty($persons)){
-		foreach ($persons as $person) {  
+		foreach ($persons as $person) {
 		 	// Lets loop over the Users and create the output using the Template, replacing [fileds] in Template
-			$result .= "<div style=\"padding: 5px;overflow-wrap: break-word;\" class=\"cblist-user\" >". db_field_replace($list_template, $person['id'],$rules,$fields) ."</div >" ;
+			$result .= "<div style=\"padding: 5px;overflow-wrap: break-word;\" class=\"cblist-user\" >". db_field_replace($list_template, $person['id'],$rules,$fields,$escape) ."</div >" ;
 		}
 	} else if ($list_debug == 1) { $debug_text .= "<p>DEBUG: Empty list?!</p>"; }
-	
+
 	$result .= " </div >";
 			
 
@@ -159,128 +155,98 @@ public static function getData( $params )
 		
 }
 
-function db_field_replace($before_str, $user_id,$rules,$fields) {
-	
-	//Get data from current user
+function db_field_replace($before_str, $user_id,$rules,$fields,$escape=true) {
+
+	//Get data from the user to show
 	$db = Factory::getDbo();
-	$query = "select * from #__users inner join #__comprofiler on #__users.id = #__comprofiler.user_id WHERE #__users.id =".$user_id;
-	// echo $query;
+	$query = "select * from #__users inner join #__comprofiler on #__users.id = #__comprofiler.user_id WHERE #__users.id =". (int) $user_id;
 	$db->setQuery($query);
 	$person = $db->loadAssoc();
-	
-	$after_str = $before_str;
 
+	// The value for each [tag]
+	$values = array(
+		'id' => array('value' => (string) (int) $user_id, 'hasdata' => true),
+		'user_id' => array('value' => (string) (int) $user_id, 'hasdata' => true),
+		'site_url' => array('value' => Uri::root(), 'hasdata' => true),
+		'profile_url' => array('value' => Route::_('index.php?option=com_comprofiler&view=userprofile&user=' . (int) $user_id), 'hasdata' => true),
+	);
 
-	// The while will only run multiple times if you have complex rules like using [canvas] in your avatar htmlcode.
-	// With this while loop we are certain that all paramtofind will be replaced. 
-	$i=0; 
-	while (/*(str_replace($search_paramtofind, '', $after_str) !== $after_str) and*/ $i<>4){	
-		$i++; // safety count to stop the loop if the user created one. While will run expected once or twice to replace everything.
-		
-		
-		foreach ($fields as $field) { //for every field that may be in the before_str
-			$paramtofind = "[".$field['name']."]";
-			$fieldtouse = $field['name'];
-			$fieldtype = $field['type'];
+	foreach ($fields as $field) {
+		$fieldtouse = $field['name'];
+		$fieldtype = $field['type'];
 
+		/*set value to insert for normal fields*/
+		$datatoinsert = isset($person[$fieldtouse]) ? (string) $person[$fieldtouse] : '';
+		$hasdata = !empty($datatoinsert);
 
-			/*set value to insert for normal fields*/ 
-			$datatoinsert = null;			
-			
-			//check if the fieldtouse exist (or is null)
-			if (isset($person[$fieldtouse]) ) {
-				$datatoinsert = $person[$fieldtouse];
-			} 
-			
-
-			/*set value to insert for images */ 
-			// if it is an image check the approved and create full url
-			//if there is an '[fieldname]approved' column it is an image. By checking the exsting of the column instead of type 'image' it will also be aplied to rules with the same name.
-			$show = true;			
-			if (isset($person[$fieldtouse.'approved']) ) {		
-								 			
-				if ( $person[$fieldtouse.'approved']==0 or (empty($datatoinsert)) ) {
-					$datatoinsert = 'no image available';
-				} else {
-					//url to the default canvas images are incorrect in stored in the database 
-					if ($fieldtouse=='canvas') {
-						$datatoinsert = str_ireplace('Gallery/', 'gallery/canvas/', $datatoinsert);
-					} 
-					//create the full image path
-					$datatoinsert =  URI::base(). "images/comprofiler/" .$datatoinsert;
+		/*set value to insert for images */
+		// if it is an image check the approved and create full url
+		//if there is an '[fieldname]approved' column it is an image.
+		if (isset($person[$fieldtouse.'approved']) ) {
+			if ( $person[$fieldtouse.'approved']==0 or !$hasdata ) {
+				$hasdata = false;
+				$datatoinsert = 'no image available';
+			} else {
+				//url to the default canvas images are incorrect in stored in the database
+				if ($fieldtouse=='canvas') {
+					$datatoinsert = str_ireplace('Gallery/', 'gallery/canvas/', $datatoinsert);
 				}
+				//create the full image path
+				$datatoinsert =  Uri::base(). "images/comprofiler/" .$datatoinsert;
 			}
-			
-			
-			/*set value to insert for multiple value fields */ 
-			//Fieldtypes with a label name in the comprofiler_field_values
-			// TODO normal checkbox currently returns a 0 or 1
-			if ( !empty($datatoinsert) and ($fieldtype=='multicheckbox' or $fieldtype=='multiselect' or $fieldtype=='select' or $fieldtype=='radio')) {
-				
-				$values= explode("|*|", $datatoinsert);				
-				// clear unexploded data from data to insert
-				$datatoinsert= '';
-					
-				foreach ($values as $value)	{			
-					//Get label from value
-					$dblabel = Factory::getDbo();
-					$query = "select fieldlabel from #__comprofiler_field_values WHERE fieldtitle ='". addslashes($value) . "'";
-					$dblabel->setQuery($query);
-					$labels = (array) $dblabel->loadAssoc();
-				
-					if (is_iterable($labels)) {
-						foreach ($labels as $label) {			
-							if(empty($label)) { 
-							$datatoinsert .= $value. " " ;
-							} else {
-								$datatoinsert .= $label. " " ;
-							}
-						}
-					} else {
-						print("Can't iterate array\n");					
-					}
-				}
-			}		
-			 			
-			// User data may not contain tags for content plugins, the output goes through them (content.prepare)
-			if (is_string($datatoinsert)) {
-				$datatoinsert = str_replace(array('{', '}'), array('&#123;', '&#125;'), $datatoinsert);
+		}
+
+		/*set value to insert for multiple value fields */
+		//Fieldtypes with a label name in the comprofiler_field_values
+		// TODO normal checkbox currently returns a 0 or 1
+		if ( $hasdata and ($fieldtype=='multicheckbox' or $fieldtype=='multiselect' or $fieldtype=='select' or $fieldtype=='radio')) {
+			$labels = array();
+			foreach (explode("|*|", $datatoinsert) as $value)	{
+				//Get label from value, of this field only. Show the value if there is no label
+				$db->setQuery("select fieldlabel from #__comprofiler_field_values WHERE fieldid = ". (int) $field['fieldid'] ." and fieldtitle = ". $db->quote($value));
+				$label = (array) $db->loadAssoc();
+				$labels[] = !empty($label['fieldlabel']) ? $label['fieldlabel'] : $value;
 			}
+			$datatoinsert = implode(' ', $labels);
+		}
 
-			// Check if there is an rule. A rule can have the same name as an CB field.
-			//array_search will return false of an array ID.
-			$rule_id = array_search($fieldtouse,array_column($rules,'tag_name'));				
-			if ( $rule_id !== false) {
+		// User data may not break out of the html
+		if ($escape) {
+			$datatoinsert = htmlspecialchars($datatoinsert, ENT_QUOTES, 'UTF-8');
+		}
+		// User data may not contain tags for content plugins, the output goes through them (content.prepare)
+		$datatoinsert = str_replace(array('{', '}'), array('&#123;', '&#125;'), $datatoinsert);
 
-				// get usergroups from loggedin user
-				$user = Factory::getUser();
-				$user_accesslevels = $user->getAuthorisedViewLevels();
-				
-				$autorised = false;
-				if ( empty($rules[$rule_id]['accesslevel']) or array_sum(array_count_values(array_intersect($user_accesslevels, $rules[$rule_id]['accesslevel'])))>0 ) { // if not set show the data
-					$autorised = true;	
-				}
-				
-				if ($autorised == true) {
-					// check if (data is not empty or that it is a rule tag created) and incase of an image tag if there is an image to show.	
-					if  (  ( !empty($datatoinsert) or $fieldtype=='rule' ) and $datatoinsert != 'no image available')   {
-						$datatoinsert = str_ireplace($paramtofind, ($datatoinsert ?? '' ), $rules[$rule_id]['htmlcode']);
-					} else {	
-						$datatoinsert =  str_ireplace($paramtofind, ($datatoinsert  ?? ''), $rules[$rule_id]['htmlcode_no'] );
-					}
-				} else {
-					//Set to empty when not autorised
-					$datatoinsert= null;
-				}	
-			}		
-		
-			$after_str = str_ireplace($paramtofind, ($datatoinsert ?? ''), $after_str); // replace the param name with '' if not found.
-			
-	
-		} // end for each fields
-	}//  end while
-	
-	return $after_str;
-	
-}	
-?>
+		$values[strtolower($fieldtouse)] = array('value' => $datatoinsert, 'hasdata' => $hasdata);
+	}
+
+	return cblistmodule_replacetags((string) $before_str, $values, $rules, Factory::getUser()->getAuthorisedViewLevels(), array());
+}
+
+// Replaces the [tags] in a text of the administrator (template or rule). Tags in user data are not replaced.
+function cblistmodule_replacetags($text, $values, $rules, $accesslevels, $openrules) {
+
+	return preg_replace_callback('/\[([^\[\]]+)\]/', function ($match) use ($values, $rules, $accesslevels, $openrules) {
+		$name = strtolower(trim($match[1]));
+
+		// A rule can have the same name as an CB field. Inside its own rule the tag is the value of the field, this also stops loops.
+		if (isset($rules[$name]) and !in_array($name, $openrules)) {
+			$rule = $rules[$name];
+			// if not set show the data, set to empty when not autorised
+			if (!empty($rule['accesslevel']) and count(array_intersect($accesslevels, $rule['accesslevel'])) == 0) {
+				return '';
+			}
+			// a rule without a field always has data
+			$html = (!isset($values[$name]) or $values[$name]['hasdata']) ? $rule['htmlcode'] : $rule['htmlcode_no'];
+			$openrules[] = $name;
+			return cblistmodule_replacetags($html, $values, $rules, $accesslevels, $openrules);
+		}
+
+		if (isset($values[$name])) {
+			return $values[$name]['value'];
+		}
+
+		// the tag of a rule inside itself without a field is empty, an unknown tag is not changed
+		return isset($rules[$name]) ? '' : $match[0];
+	}, $text);
+}

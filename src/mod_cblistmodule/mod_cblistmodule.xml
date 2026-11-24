@@ -3,7 +3,7 @@
     <name>Community Builder list module</name>
     <author>Tazzios (original Magnus Hasselquist https://github.com/magnushasselquist/hqcblistmodule) </author>
     <authorUrl>https://github.com/Tazzios</authorUrl>
-    <version>4.0.0</version>
+    <version>5.0.0</version>
     <creationDate>November 2026</creationDate>
     <license>GNU General Public License version 2 or later</license>
     <description>Displaying Users from a selected CB List in a Module.</description>
@@ -31,7 +31,8 @@
 			filter="integer" 
 			
 			default="10"
-			label="Number of users to show"	/>
+			label="Number of users to show"
+			description="0 shows all users of the list"	/>
 			<field
                		name="orderby"
                		type="sql"
@@ -144,10 +145,19 @@
 			label="Text to be included UNDER the user list"
 				buttons="false"
 				filter="raw" />
-		  <field 
+		<field
+			name="escape_values" type="radio"
+			default="1"
+			label="Escape user data"
+			description="Shows HTML in user data as text, so that users can not place scripts with their profile. Only turn off if you need HTML of a CB field and trust the users."
+			>
+				<option value="1">ON</option>
+				<option value="0">OFF</option>
+		</field>
+		  <field
 			 	name="debug" type="radio"
 				default="0"
-				label="Turn on DEBUG output to help find errors in list filter (make sure to turn off in production)."
+				label="Turn on DEBUG output to help find errors in list filter (make sure to turn off in production). Only shown to Super Users."
 				>
 					<option value="0">OFF</option>
 					<option value="1">ON</option>
