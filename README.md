@@ -3,11 +3,13 @@
 
 One Joomla package (`pkg_cbmodulecontent`) for Community Builder with:
 
-| Extension | Element | What it does | Docs |
-|---|---|---|---|
-| Community Builder list module | `mod_cblistmodule` | Shows the users of a CB list in a module, with your own template | [docs/mod_cblistmodule.md](docs/mod_cblistmodule.md) |
-| Content - cbprofile | `plg_content_cbprofile` | Shows CB profiles in articles with `{cbprofile ...}` | [docs/plg_content_cbprofile.md](docs/plg_content_cbprofile.md) |
-| CB list helper | `lib_cblisthelper` | Shared code: builds the user query of a CB list the same way CB does | |
+| Extension | Element | What it does |
+|---|---|---|
+| Community Builder list module | `mod_cblistmodule` | Shows the users of a CB list in a module, with your own template |
+| Content - cbprofile | `plg_content_cbprofile` | Shows CB profiles in articles with `{cbprofile ...}` |
+| CB list helper | `lib_cblisthelper` | Shared code: builds the user query of a CB list the same way CB does |
+
+**Documentation:** settings, tags, examples and upgrading are in the [wiki](https://github.com/Tazzios/cbmodulecontent/wiki).
 
 Both the module and the plugin load the shared helper from
 `libraries/cblisthelper/cblisthelper.php`, so there is one copy of that code.
@@ -85,7 +87,7 @@ tests/                    PHPUnit and Node.js tests
 src/lib_cblisthelper/     shared library
 src/mod_cblistmodule/     module
 src/plg_content_cbprofile/ content plugin
-docs/                     documentation and changelogs of the former repositories
+docs/                     changelogs of the former repositories and images used by the wiki
 ```
 The git history of [cblistmodule](https://github.com/Tazzios/cblistmodule) and
 [cbprofilecontent](https://github.com/Tazzios/cbprofilecontent) is kept in this repository.
