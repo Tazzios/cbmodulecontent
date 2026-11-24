@@ -1,4 +1,4 @@
-Unreleased  
+v5.0.0 November 2026  
 New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  
 New: setting "Escape user data" in the module and the plugin, on by default
