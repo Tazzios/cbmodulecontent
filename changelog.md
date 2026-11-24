@@ -1,4 +1,4 @@
-Unreleased  
+v5.0.1 November 2026  
 New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  
 New: tags [profile_url] and [site_url] in the module template and rules  

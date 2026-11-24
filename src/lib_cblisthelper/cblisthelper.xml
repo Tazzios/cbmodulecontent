@@ -7,7 +7,7 @@
 	<creationDate>November 2026</creationDate>
 	<copyright></copyright>
 	<license>GNU General Public License version 2 or later</license>
-	<version>5.0.0</version>
+	<version>5.0.1</version>
 	<description>Shared code for the CB module &amp; content package: builds the user query of a Community Builder list.</description>
 	<files>
 		<filename>cblisthelper.php</filename>
