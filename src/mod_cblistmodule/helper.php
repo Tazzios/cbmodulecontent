@@ -10,6 +10,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Uri\Uri;
 
 // Shared CB list query builder, installed by pkg_cbmodulecontent as library 'cblisthelper'
@@ -148,7 +149,10 @@ public static function getData( $params )
 	$result .= " </div >";
 			
 
-	return $list_textabove . $debug_text . $result . $list_textbelow;
+	$content = $list_textabove . $debug_text . $result . $list_textbelow;
+
+	// Trigger onContentPrepare so content plugins can process tags in the output. content.prepare passes an object, Joomla 5+ does not accept a string here
+	return HTMLHelper::_('content.prepare', $content, $params, 'mod_cblistmodule.content');
 
     	}
 		
