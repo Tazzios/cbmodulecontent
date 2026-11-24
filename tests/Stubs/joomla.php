@@ -56,8 +56,12 @@ namespace Joomla\CMS\Uri {
 namespace Joomla\CMS\Router {
     class Route
     {
+        public static int $calls = 0;
+
         public static function _($url)
         {
+            static::$calls++;
+
             return '/route?' . htmlspecialchars(explode('?', $url)[1]);
         }
     }

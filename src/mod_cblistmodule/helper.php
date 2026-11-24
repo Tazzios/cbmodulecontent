@@ -168,7 +168,10 @@ function db_field_replace($before_str, $user_id,$rules,$fields,$escape=true) {
 		'id' => array('value' => (string) (int) $user_id, 'hasdata' => true),
 		'user_id' => array('value' => (string) (int) $user_id, 'hasdata' => true),
 		'site_url' => array('value' => Uri::root(), 'hasdata' => true),
-		'profile_url' => array('value' => Route::_('index.php?option=com_comprofiler&view=userprofile&user=' . (int) $user_id), 'hasdata' => true),
+		// only made when the tag is used
+		'profile_url' => array('value' => function () use ($user_id) {
+			return Route::_('index.php?option=com_comprofiler&view=userprofile&user=' . (int) $user_id);
+		}, 'hasdata' => true),
 	);
 
 	foreach ($fields as $field) {
@@ -243,7 +246,8 @@ function cblistmodule_replacetags($text, $values, $rules, $accesslevels, $openru
 		}
 
 		if (isset($values[$name])) {
-			return $values[$name]['value'];
+			$value = $values[$name]['value'];
+			return $value instanceof Closure ? $value() : $value;
 		}
 
 		// the tag of a rule inside itself without a field is empty, an unknown tag is not changed

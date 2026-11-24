@@ -286,6 +286,16 @@ final class ModuleTest extends TestCase
         );
     }
 
+    public function testProfileUrlIsOnlyMadeWhenUsed(): void
+    {
+        \Joomla\CMS\Router\Route::$calls = 0;
+        $this->names();
+        $this->assertSame(0, \Joomla\CMS\Router\Route::$calls);
+
+        $this->names(['template' => '[show]', 'rules' => ['r' => ['tag_name' => 'show', 'htmlcode' => '[profile_url]', 'htmlcode_no' => '']]]);
+        $this->assertSame(3, \Joomla\CMS\Router\Route::$calls);
+    }
+
     public function testOrderByIdAndUnknownField(): void
     {
         $this->assertSame(['Duck Toy', 'Elly elifant', 'Dolly'], $this->names(['orderby' => 'id', 'sortorder' => 'desc']));
