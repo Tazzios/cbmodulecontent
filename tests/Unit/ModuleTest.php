@@ -222,6 +222,9 @@ final class ModuleTest extends TestCase
             $this->assertSame($expected, $html);
         }
 
+        // As the browser reads it: entities decoded, spaces and control characters ignored.
+        $read = preg_replace('/[\x00-\x20]+/', '', html_entity_decode($html, ENT_QUOTES | ENT_HTML5));
+        $this->assertDoesNotMatchRegularExpression('~(href|src)=["\']?(javascript|data|vbscript):~i', $read);
         $this->assertDoesNotMatchRegularExpression('~<(script|iframe|svg|form|input)|<[^>]*\son\w+\s*=|<[^>]*/on\w+\s*=|<[^>]*(javascript|data)\s*:|<[^>]*style\s*=~i', $html);
     }
 
