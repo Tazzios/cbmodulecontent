@@ -24,6 +24,14 @@ The only mandatory configuration for the module is selecting a CB list to show t
 <div class="yourclasstostyle">[avatar]<br /> <a href="cb-profile/[user_id]">[Name]</a>
 <div class="role"><a href="departmens/[cb_department]">[cb_department]</a>,[cb_role]</div>
 ```
+### tags
+Besides the CB fields you can use [id], [user_id], [profile_url] (link to the CB profile) and [site_url].
+Tags in user data are not replaced.
+
+### escape user data
+HTML in user data is shown as text. Only turn off "Escape user data" if you need the HTML of a CB field
+(for example an editor field) and trust the users.
+
 ### rule examples;
 A basic set of rules will be created when creating the module.
 When creating custom tags make sure the tags that you are using within always have a value. For example see the avatar rule and show_avatar rule.

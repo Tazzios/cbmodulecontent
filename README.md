@@ -42,7 +42,7 @@ The package, library, module and plugin share one version number. Write every ch
 `Unreleased` in changelog.md. If there is no `Unreleased` section, add one on top. Releasing takes
 two steps, both started by hand from the Actions tab:
 
-1. **Release** (Actions, Release, Run workflow) with a version, for example 4.0.0. It sets the version
+1. **Release** (Actions, Release, Run workflow) with a version, for example 5.0.0. It sets the version
    in the four manifests, turns the Unreleased section into the release notes, runs the tests, commits
    this to main, tags `v<version>`, builds the package and publishes a GitHub release with it. Commit
    and tag are public, also with the option draft. Existing installs are not offered the update yet.
@@ -56,10 +56,10 @@ This needs the repository setting "Allow GitHub Actions to create and approve pu
 
 The same steps work locally:
 ```
-node tools/release.js prepare 4.0.0
+node tools/release.js prepare 5.0.0
 node tools/release.js build
-node tools/release.js notes 4.0.0
-node tools/release.js update-xml 4.0.0 --sha256 <hash of the zip>
+node tools/release.js notes 5.0.0
+node tools/release.js update-xml 5.0.0 --sha256 <hash of the zip>
 ```
 
 ### Separate installs

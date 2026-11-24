@@ -1,11 +1,24 @@
 Unreleased  
 New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  
+New: setting "Escape user data" in the module and the plugin, on by default
+New: tags [profile_url] and [site_url] in the module template and rules
+New: number of users 0 shows all users of the list
+Security: user data is escaped in the module and the plugin, HTML in user data is shown as text (based on fixes by Magnus Hasselquist, magnushasselquist/cblistmodule 4.0.0)
+Security: [tags] in user data are no longer replaced, only in the template and the rules (based on fixes by Magnus Hasselquist)
+Security: the debug query is only shown to Super Users (based on fixes by Magnus Hasselquist)
 Security: user data in the module and plugin output can not contain tags for content plugins  
 Security: the values of a {cbprofile} tag are escaped in the database query, orderby only accepts existing columns and order only asc, desc or random  
 Security: imagewidth, imageheight, float and layout of a {cbprofile} tag are checked before they are used  
 Fixed: CB list filter "contains" (LIKE) removed the other filters of the list  
 Fixed: CB list filter "IN" with text values found no users  
+Fixed: an apostrophe in the value of a CB list filter gave a database error (based on fixes by Magnus Hasselquist)
+Fixed: a CB list without user groups, or a filter or order on the field id, gave a database error (based on fixes by Magnus Hasselquist)
+Fixed: the filter "Is not one of" gave a database error (based on fixes by Magnus Hasselquist)
+Fixed: the filters "Is empty" and "Is not empty" gave a database error
+Fixed: % and _ in the value of a "contains" filter are normal characters now (based on fixes by Magnus Hasselquist)
+Fixed: a select field could show the label of an other field with the same value (based on fixes by Magnus Hasselquist)
+Changed: a CB list with an unknown field or operator in a filter shows no users
 Fixed: {cbprofile} with a CB list without users gave a database error, or showed the users of the tag before it  
 Fixed: avatars that are not approved were shown in all layouts  
 Fixed: layout text-default had a double slash in the avatar url, and a broken image for users without an avatar  

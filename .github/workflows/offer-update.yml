@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to offer, for example 4.0.0 (empty = newest release)'
+        description: 'Version to offer, for example 5.0.0 (empty = newest release)'
         required: false
         default: ''
 
@@ -79,5 +79,5 @@ jobs:
             - Download: https://github.com/${{ github.repository }}/releases/download/v${{ steps.release.outputs.version }}/pkg_cbmodulecontent-${{ steps.release.outputs.version }}.zip
             - sha256: `${{ steps.release.outputs.sha256 }}`
 
-            Sites with only the separate module or plugin (before 4.0.0) look in the old repositories, see "Separate installs" in README.md.
+            Sites with only the separate module or plugin (before 5.0.0) look in the old repositories, see "Separate installs" in README.md.
           delete-branch: true

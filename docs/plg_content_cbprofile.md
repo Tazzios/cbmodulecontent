@@ -73,6 +73,8 @@ Limit the avatar size
 
 ### templates:
 
+The user data in $userprofile is already escaped, unless you turn off "Escape user data" in the plugin settings.
+
 You can create your own templates and place them in the 'tmpl' folder.
 To use the template you can set a layout=[filename] parameter or set the template as the default in the configuration.
 Do not edit the existing ones! You changes will be overwritten when the plugin gets updated.

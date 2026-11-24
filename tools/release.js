@@ -4,19 +4,19 @@
 /*
  * Release helper for the "CB module & content" package (library, module, plugin).
  *
- *   node tools/release.js prepare 4.0.0
+ *   node tools/release.js prepare 5.0.0
  *       Sets the version and creation date in the four manifests and turns the
- *       "Unreleased" section of changelog.md into "v4.0.0 <Month> <Year>".
+ *       "Unreleased" section of changelog.md into "v5.0.0 <Month> <Year>".
  *
  *   node tools/release.js build
  *       Builds dist/pkg_cbmodulecontent-<version>.zip: one Joomla package with
  *       the library, the module and the content plugin inside.
  *
- *   node tools/release.js notes 4.0.0
- *       Prints the release notes for 4.0.0 (its section of changelog.md).
+ *   node tools/release.js notes 5.0.0
+ *       Prints the release notes for 5.0.0 (its section of changelog.md).
  *
- *   node tools/release.js update-xml 4.0.0 [--sha256 <hash>]
- *       Offers 4.0.0 to existing installs of the package: adds it to updates.xml
+ *   node tools/release.js update-xml 5.0.0 [--sha256 <hash>]
+ *       Offers 5.0.0 to existing installs of the package: adds it to updates.xml
  *       and adds its changes (from changelog.md) to changelog.xml, which Joomla
  *       shows behind the Changelog button in the update list. Do this only after
  *       the GitHub release exists.
@@ -47,7 +47,7 @@ const write = (file, text) => fs.writeFileSync(path.join(ROOT, file), text);
 
 function checkVersion(version) {
   if (!/^\d+\.\d+\.\d+$/.test(version || '')) {
-    throw new Error(`"${version}" is not a version like 4.0.0`);
+    throw new Error(`"${version}" is not a version like 5.0.0`);
   }
   return version;
 }
@@ -235,7 +235,7 @@ function build() {
 /* ---------- update-xml ---------- */
 
 // Who gets the update: the package. The separate module and plugin (before
-// 4.0.0) have their own update files in their old repositories, see README.md.
+// 5.0.0) have their own update files in their old repositories, see README.md.
 const UPDATE_TARGETS = [
   { name: 'CB module &amp; content', element: 'pkg_cbmodulecontent', type: 'package', folder: null },
 ];
