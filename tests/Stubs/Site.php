@@ -95,6 +95,23 @@ final class Database
         return new Query();
     }
 
+    public function quote($text)
+    {
+        return $this->pdo->quote($text);
+    }
+
+    public function quoteName($name)
+    {
+        return '`' . $name . '`';
+    }
+
+    public function getTableColumns($table)
+    {
+        $rows = $this->pdo->query('PRAGMA table_info(' . str_replace('#__', 'jos_', $table) . ')')->fetchAll(\PDO::FETCH_ASSOC);
+
+        return array_column($rows, 'type', 'name');
+    }
+
     public function setQuery($query)
     {
         $this->query = (string) $query;
@@ -150,13 +167,14 @@ final class Site
         HTMLHelper::$calls          = [];
         HTMLHelper::$contentPlugins = [];
 
-        $db->exec('CREATE TABLE jos_users (id INT, name TEXT COLLATE NOCASE, username TEXT COLLATE NOCASE, email TEXT, block INT)');
+        $db->exec('CREATE TABLE jos_users (id INT, name TEXT COLLATE NOCASE, username TEXT COLLATE NOCASE, email TEXT, block INT, password TEXT, registerDate TEXT)');
         $db->exec('CREATE TABLE jos_user_usergroup_map (user_id INT, group_id INT)');
         $db->exec('CREATE TABLE jos_comprofiler (id INT, user_id INT, approved INT, confirmed INT, avatar TEXT, avatarapproved INT, cb_city TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_lists (listid INTEGER PRIMARY KEY, title TEXT, published INT, usergroupids TEXT, params TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_fields (name TEXT, type TEXT, "table" TEXT, tablecolumns TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_field_values (fieldtitle TEXT, fieldlabel TEXT)');
         $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('name','text','#__users','name')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('username','predefined','#__users','username')");
         $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('cb_city','text','#__comprofiler','cb_city')");
 
         self::user(self::DOLLY, 'Dolly', 'Dolphine', 'Utrecht');
@@ -167,10 +185,10 @@ final class Site
         return $db;
     }
 
-    private static function user(int $id, string $name, string $username, string $city, int $block = 0): void
+    public static function user(int $id, string $name, string $username, string $city, int $block = 0): void
     {
         $db = Factory::$db;
-        $db->exec('INSERT INTO jos_users VALUES (?,?,?,?,?)', [$id, $name, $username, strtolower($username) . '@example.org', $block]);
+        $db->exec('INSERT INTO jos_users VALUES (?,?,?,?,?,?,?)', [$id, $name, $username, strtolower($username) . '@example.org', $block, "hash$id", '2026-01-' . (700 - $id)]);
         $db->exec('INSERT INTO jos_user_usergroup_map VALUES (?,2)', [$id]);
         $db->exec('INSERT INTO jos_comprofiler VALUES (?,?,1,1,?,1,?)', [$id, $id, "gallery/$id.png", $city]);
     }

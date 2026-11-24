@@ -86,6 +86,21 @@ final class CblistHelperTest extends TestCase
         $this->assertStringContainsString("name = 'Dolly'", cblisthelper_createquery(null, 'only dolly')['cblistselect']);
     }
 
+    public function testUnknownListHasNoUsers(): void
+    {
+        $this->assertSame([], $this->users(99));
+    }
+
+    public function testListIdAndNameAreSafeInTheQuery(): void
+    {
+        Site::cbList(1);
+
+        cblisthelper_createquery('1 OR 1=1', null);
+        $this->assertStringContainsString('listid = 1 AND published=1', end(Factory::$db->log));
+        cblisthelper_createquery(null, "x' OR '1'='1");
+        $this->assertStringContainsString("title = 'x'' OR ''1''=''1' AND", end(Factory::$db->log));
+    }
+
     public function testSortOfTheListIsReturnedSeparately(): void
     {
         Site::cbList(1, [], 'x', ['sort_basic' => [['column' => 'name', 'direction' => 'DESC']]]);

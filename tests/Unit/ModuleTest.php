@@ -113,6 +113,38 @@ final class ModuleTest extends TestCase
         $this->assertSame(3, substr_count($html, 'cblist-user'));
     }
 
+    public function testTagInUserDataIsNotProcessed(): void
+    {
+        $this->usePlugin();
+        Factory::$db->exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
+        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_city]</b>']));
+
+        $this->assertStringContainsString('<b>&#123;cbprofile username=DuckT&#125;</b>', $html);
+        $this->assertStringNotContainsString('&user=', $html);
+        $this->assertStringNotContainsString('{', $html);
+    }
+
+    public function testTagInUserDataIsNotProcessedInARule(): void
+    {
+        $this->usePlugin();
+        Factory::$db->exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
+        $html = modcbListHelper::getData($this->params([
+            'template' => '<b>[cb_city]</b>',
+            'rules'    => ['rules0' => ['tag_name' => 'cb_city', 'accesslevel' => ['1'], 'htmlcode' => 'in [cb_city]', 'htmlcode_no' => '']],
+        ]));
+
+        $this->assertStringContainsString('in &#123;cbprofile', $html);
+        $this->assertStringNotContainsString('&user=', $html);
+    }
+
+    public function testTagInTheTemplateIsProcessed(): void
+    {
+        $this->usePlugin();
+        $html = modcbListHelper::getData($this->params(['template' => '{cbprofile username=[username]}']));
+
+        $this->assertStringNotContainsString('{', $html);
+    }
+
     public function testDebugShowsTheQuery(): void
     {
         $this->assertStringContainsString('DEBUG: <pre>SELECT DISTINCT', modcbListHelper::getData($this->params(['debug' => '1'])));

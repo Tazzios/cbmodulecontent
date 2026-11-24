@@ -242,6 +242,11 @@ function db_field_replace($before_str, $user_id,$rules,$fields) {
 				}
 			}		
 			 			
+			// User data may not contain tags for content plugins, the output goes through them (content.prepare)
+			if (is_string($datatoinsert)) {
+				$datatoinsert = str_replace(array('{', '}'), array('&#123;', '&#125;'), $datatoinsert);
+			}
+
 			// Check if there is an rule. A rule can have the same name as an CB field.
 			//array_search will return false of an array ID.
 			$rule_id = array_search($fieldtouse,array_column($rules,'tag_name'));				

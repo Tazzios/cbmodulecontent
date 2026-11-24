@@ -20,10 +20,10 @@ if (!function_exists('cblisthelper_createquery')) {
 function cblisthelper_createquery($cblistid,$cblistname) {	
 	$where = '' ;
 	if (!empty($cblistid)) {
-		$where = 'listid = '. $cblistid ;
+		$where = 'listid = '. (int) $cblistid ;
 	}
 	else {
-		$where = 'title = \''. $cblistname . '\'';
+		$where = 'title = '. Factory::getDbo()->quote($cblistname);
 	}
 
 
@@ -41,6 +41,16 @@ function cblisthelper_createquery($cblistid,$cblistname) {
 
 	// Load the List row.
 	$row = $db->loadAssoc();
+
+	// Unknown or unpublished list: a query without users
+	if (empty($row)) {
+		return array(
+			'cblistselect' => 'SELECT ue.id FROM #__users u JOIN #__comprofiler ue ON ue.id = u.id WHERE 1 = 0',
+			'cblistsortby' => 'ue.id',
+			'cblistsortorder' => 'ASC',
+		);
+	}
+
 	$select_sql_raw = $row['params'];
 	$select_sql =""; //declare variable	
 
