@@ -87,6 +87,7 @@ final class Database
 
             return $i === false ? 0 : $i + 1;
         });
+        $this->pdo->sqliteCreateFunction('regexp', static fn ($pattern, $value) => (int) preg_match("~$pattern~i", (string) $value));
         $this->pdo->sqliteCreateFunction('rand', static fn () => mt_rand());
     }
 
@@ -126,20 +127,13 @@ final class Database
         return $this->pdo->query($this->toSqlite($this->query))->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    // The few places where MySQL accepts what SQLite does not.
     private function toSqlite(string $sql): string
     {
         $sql = str_replace('#__', 'jos_', $sql);
+        // MySQL accepts the name table without quotes.
         $sql = str_replace('fields.table ', 'fields."table" ', $sql);
         // Joomla does not replace the prefix inside quoted values.
-        $sql = str_replace("'jos_", "'#__", $sql);
-
-        // An expression in ORDER BY of a UNION
-        if (preg_match('/^(.*[[:space:]]UNION[[:space:]].*)(order by .*)$/is', $sql, $m)) {
-            $sql = "SELECT * FROM ($m[1]) $m[2]";
-        }
-
-        return $sql;
+        return str_replace("'jos_", "'#__", $sql);
     }
 
     public function loadAssoc()
@@ -164,18 +158,22 @@ final class Site
     {
         $db = Factory::$db = new Database();
         Factory::$viewLevels        = [1];
+        Factory::$superUser         = false;
         HTMLHelper::$calls          = [];
         HTMLHelper::$contentPlugins = [];
 
         $db->exec('CREATE TABLE jos_users (id INT, name TEXT COLLATE NOCASE, username TEXT COLLATE NOCASE, email TEXT, block INT, password TEXT, registerDate TEXT)');
         $db->exec('CREATE TABLE jos_user_usergroup_map (user_id INT, group_id INT)');
-        $db->exec('CREATE TABLE jos_comprofiler (id INT, user_id INT, approved INT, confirmed INT, avatar TEXT, avatarapproved INT, cb_city TEXT)');
+        $db->exec('CREATE TABLE jos_comprofiler (id INT, user_id INT, approved INT, confirmed INT, avatar TEXT, avatarapproved INT, cb_city TEXT, cb_color TEXT)');
         $db->exec('CREATE TABLE jos_comprofiler_lists (listid INTEGER PRIMARY KEY, title TEXT, published INT, usergroupids TEXT, params TEXT)');
-        $db->exec('CREATE TABLE jos_comprofiler_fields (name TEXT, type TEXT, "table" TEXT, tablecolumns TEXT)');
-        $db->exec('CREATE TABLE jos_comprofiler_field_values (fieldtitle TEXT, fieldlabel TEXT)');
-        $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('name','text','#__users','name')");
-        $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('username','predefined','#__users','username')");
-        $db->exec("INSERT INTO jos_comprofiler_fields VALUES ('cb_city','text','#__comprofiler','cb_city')");
+        $db->exec('CREATE TABLE jos_comprofiler_fields (fieldid INT, name TEXT, type TEXT, "table" TEXT, tablecolumns TEXT)');
+        $db->exec('CREATE TABLE jos_comprofiler_field_values (fieldid INT, fieldtitle TEXT, fieldlabel TEXT)');
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (1,'name','text','#__users','name')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (2,'username','predefined','#__users','username')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (3,'cb_city','text','#__comprofiler','cb_city')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (4,'avatar','image','#__comprofiler','avatar,avatarapproved')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (5,'password','password','#__users','password')");
+        $db->exec("INSERT INTO jos_comprofiler_fields VALUES (6,'cb_color','select','#__comprofiler','cb_color')");
 
         self::user(self::DOLLY, 'Dolly', 'Dolphine', 'Utrecht');
         self::user(self::ELLY, 'Elly elifant', 'elifantE', 'Rotterdam');
@@ -190,15 +188,15 @@ final class Site
         $db = Factory::$db;
         $db->exec('INSERT INTO jos_users VALUES (?,?,?,?,?,?,?)', [$id, $name, $username, strtolower($username) . '@example.org', $block, "hash$id", '2026-01-' . (700 - $id)]);
         $db->exec('INSERT INTO jos_user_usergroup_map VALUES (?,2)', [$id]);
-        $db->exec('INSERT INTO jos_comprofiler VALUES (?,?,1,1,?,1,?)', [$id, $id, "gallery/$id.png", $city]);
+        $db->exec('INSERT INTO jos_comprofiler VALUES (?,?,1,1,?,1,?,NULL)', [$id, $id, "gallery/$id.png", $city]);
     }
 
     /** Adds a Community Builder list, filters as [column, operator, value]. */
-    public static function cbList(int $id, array $filters = [], string $title = 'all users', array $params = []): void
+    public static function cbList(int $id, array $filters = [], string $title = 'all users', array $params = [], string $groups = '|*|2'): void
     {
         $rows = array_map(static fn ($f) => ['column' => $f[0], 'operator' => $f[1], 'value' => $f[2]], $filters ?: [['', '', '']]);
 
-        Factory::$db->exec('INSERT INTO jos_comprofiler_lists VALUES (?,?,1,?,?)', [$id, $title, '|*|2', json_encode($params + [
+        Factory::$db->exec('INSERT INTO jos_comprofiler_lists VALUES (?,?,1,?,?)', [$id, $title, $groups, json_encode($params + [
             'filter_mode'           => '0',
             'filter_basic'          => $rows,
             'list_show_unapproved'  => '0',

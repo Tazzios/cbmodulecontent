@@ -14,6 +14,7 @@ namespace Joomla\CMS {
         public static ?\Tests\Stubs\Database $db = null;
         /** @var int[] view levels of the visitor */
         public static array $viewLevels = [1];
+        public static bool $superUser = false;
 
         public static function getDbo()
         {
@@ -27,6 +28,11 @@ namespace Joomla\CMS {
                 {
                     return Factory::$viewLevels;
                 }
+
+                public function authorise($action)
+                {
+                    return $action === 'core.admin' && Factory::$superUser;
+                }
             };
         }
     }
@@ -38,6 +44,21 @@ namespace Joomla\CMS\Uri {
         public static function base()
         {
             return 'https://example.org/';
+        }
+
+        public static function root()
+        {
+            return 'https://example.org/';
+        }
+    }
+}
+
+namespace Joomla\CMS\Router {
+    class Route
+    {
+        public static function _($url)
+        {
+            return '/route?' . htmlspecialchars(explode('?', $url)[1]);
         }
     }
 }
