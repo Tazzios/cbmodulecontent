@@ -191,12 +191,25 @@ final class ContentPluginTest extends TestCase
         }
     }
 
-    public function testEscapeCanBeTurnedOffButTagsStayHarmless(): void
+    public function testOldSettingDoesNotTurnOffEscaping(): void
     {
         Site::user(665, '<i>Jan</i>{loadposition x}', 'html', 'Utrecht');
         $html = $this->prepare('{cbprofile username=html}', 'com_content.article', ['escape_values' => '0']);
 
-        $this->assertStringContainsString('<i>Jan</i>&#123;loadposition x&#125;', $html);
+        $this->assertStringContainsString('&lt;i&gt;Jan&lt;/i&gt;&#123;loadposition x&#125;', $html);
+    }
+
+    public function testEditorFieldInOwnLayoutShowsHtmlWithoutScripts(): void
+    {
+        Joomla\CMS\Plugin\PluginHelper::$layoutPath = \dirname(__DIR__) . '/Stubs/layout.php';
+        $about = '<p>Hi <strong>there</strong></p><script>alert(1)</script><img src="x.png" onerror="alert(1)"><a href="javascript:alert(1)">x</a>{loadposition x}';
+        Factory::$db->exec('UPDATE jos_comprofiler SET cb_about = ?, cb_city = ? WHERE id = ?', [$about, '<i>Utrecht</i>', Site::DOLLY]);
+        $html = $this->prepare('{cbprofile username=Dolphine}');
+
+        $this->assertStringContainsString('<p>Hi <strong>there</strong></p>', $html);
+        $this->assertStringContainsString('&#123;loadposition x&#125;', $html);
+        $this->assertStringContainsString('city=&lt;i&gt;Utrecht&lt;/i&gt;', $html);
+        $this->assertDoesNotMatchRegularExpression('~<script|onerror\s*=|href="?javascript~i', $html);
     }
 
     public function testTagInUserDataIsNotLeftForOtherPlugins(): void

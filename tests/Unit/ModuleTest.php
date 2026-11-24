@@ -3,6 +3,7 @@
 use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\Registry\Registry;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Tests\Stubs\Site;
 
@@ -190,14 +191,59 @@ final class ModuleTest extends TestCase
         $this->assertStringContainsString('<img alt="x&quot; onerror=&quot;alert(1)">', $html);
     }
 
-    public function testEscapeCanBeTurnedOffButTagsStayHarmless(): void
+    public static function editorValues(): array
+    {
+        return [
+            'markup stays'      => ['<p>Hi <strong>there</strong> <a href="https://example.org/x">link</a></p>', '<p>Hi <strong>there</strong> <a href="https://example.org/x">link</a></p>'],
+            'script'            => ['<p>a</p><script>alert(1)</script>', null],
+            'onerror'           => ['<img src="x.png" onerror="alert(1)">', null],
+            'onerror no quotes' => ['<img src=x.png onerror=alert(1)>', null],
+            'onerror slash'     => ['<img/src="x.png"/onerror="alert(1)">', null],
+            'javascript link'   => ['<a href="javascript:alert(1)">x</a>', null],
+            'javascript mixed'  => ["<a href=\" JaVa\tScRiPt:alert(1)\">x</a>", null],
+            'javascript entity' => ['<a href="&#106;avascript:alert(1)">x</a>', null],
+            'data link'         => ['<a href="data:text/html;base64,PHNjcmlwdD4=">x</a>', null],
+            'iframe'            => ['<iframe src="https://example.org"></iframe>', null],
+            'svg'               => ['<svg onload="alert(1)"><circle/></svg>', null],
+            'style'             => ['<p style="position:fixed;top:0">x</p>', null],
+            'form'              => ['<form action="https://evil"><input name="p"></form>', null],
+            'nested script'     => ['<scr<script>ipt>alert(1)</scr</script>ipt>', null],
+            'broken tag'        => ['<img src="x.png" onerror="alert(1)"', null],
+        ];
+    }
+
+    #[DataProvider('editorValues')]
+    public function testEditorFieldShowsHtmlWithoutScripts(string $value, ?string $expected): void
+    {
+        $this->setUserData('cb_about', $value);
+        $html = $this->names(['template' => '<b>[cb_about]</b>', 'user-limit' => 1])[0];
+
+        if ($expected !== null) {
+            $this->assertSame($expected, $html);
+        }
+
+        // As the browser reads it: entities decoded, spaces and control characters ignored.
+        $read = preg_replace('/[\x00-\x20]+/', '', html_entity_decode($html, ENT_QUOTES | ENT_HTML5));
+        $this->assertDoesNotMatchRegularExpression('~(href|src)=["\']?(javascript|data|vbscript):~i', $read);
+        $this->assertDoesNotMatchRegularExpression('~<(script|iframe|svg|form|input)|<[^>]*\son\w+\s*=|<[^>]*/on\w+\s*=|<[^>]*(javascript|data)\s*:|<[^>]*style\s*=~i', $html);
+    }
+
+    public function testTagsInEditorFieldAreHarmless(): void
     {
         $this->usePlugin();
-        $this->setUserData('cb_city', '<i>Utrecht</i>{cbprofile username=DuckT}');
-        $html = modcbListHelper::getData($this->params(['template' => '[cb_city]', 'escape_values' => '0']));
+        $this->setUserData('cb_about', '<i>x</i> {cbprofile username=DuckT} [username]');
+        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_about]</b>', 'user-limit' => 1]));
 
-        $this->assertStringContainsString('<i>Utrecht</i>&#123;cbprofile username=DuckT&#125;', $html);
+        $this->assertStringContainsString('<b><i>x</i> &#123;cbprofile username=DuckT&#125; [username]</b>', $html);
         $this->assertStringNotContainsString('&user=', $html);
+    }
+
+    public function testOldSettingDoesNotTurnOffEscaping(): void
+    {
+        $this->setUserData('cb_city', '<i>Utrecht</i>');
+        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_city]</b>', 'escape_values' => '0']));
+
+        $this->assertStringContainsString('<b>&lt;i&gt;Utrecht&lt;/i&gt;</b>', $html);
     }
 
     public function testTagsInUserDataAreNotReplaced(): void

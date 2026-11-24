@@ -145,15 +145,6 @@
 			label="Text to be included UNDER the user list"
 				buttons="false"
 				filter="raw" />
-		<field
-			name="escape_values" type="radio"
-			default="1"
-			label="Escape user data"
-			description="Shows HTML in user data as text, so that users can not place scripts with their profile. Only turn off if you need HTML of a CB field and trust the users."
-			>
-				<option value="1">ON</option>
-				<option value="0">OFF</option>
-		</field>
 		  <field
 			 	name="debug" type="radio"
 				default="0"

@@ -134,11 +134,10 @@ public static function getData( $params )
 	if ($list_debug == 1) {  $debug_text .= "<p>DEBUG: <pre>".str_replace(array('{', '}'), array('&#123;', '&#125;'), htmlspecialchars($fetch_sql, ENT_QUOTES, 'UTF-8'))."</pre></p>"; }
 	$db->setQuery($fetch_sql);
 	$persons = $db->loadAssocList();
-	$escape = (int) $params->get('escape_values', 1) == 1;
 	if (!empty($persons)){
 		foreach ($persons as $person) {
 		 	// Lets loop over the Users and create the output using the Template, replacing [fileds] in Template
-			$result .= "<div style=\"padding: 5px;overflow-wrap: break-word;\" class=\"cblist-user\" >". db_field_replace($list_template, $person['id'],$rules,$fields,$escape) ."</div >" ;
+			$result .= "<div style=\"padding: 5px;overflow-wrap: break-word;\" class=\"cblist-user\" >". db_field_replace($list_template, $person['id'],$rules,$fields) ."</div >" ;
 		}
 	} else if ($list_debug == 1) { $debug_text .= "<p>DEBUG: Empty list?!</p>"; }
 
@@ -155,7 +154,7 @@ public static function getData( $params )
 		
 }
 
-function db_field_replace($before_str, $user_id,$rules,$fields,$escape=true) {
+function db_field_replace($before_str, $user_id,$rules,$fields) {
 
 	//Get data from the user to show
 	$db = Factory::getDbo();
@@ -213,12 +212,8 @@ function db_field_replace($before_str, $user_id,$rules,$fields,$escape=true) {
 			$datatoinsert = implode(' ', $labels);
 		}
 
-		// User data may not break out of the html
-		if ($escape) {
-			$datatoinsert = htmlspecialchars($datatoinsert, ENT_QUOTES, 'UTF-8');
-		}
-		// User data may not contain tags for content plugins, the output goes through them (content.prepare)
-		$datatoinsert = str_replace(array('{', '}'), array('&#123;', '&#125;'), $datatoinsert);
+		// User data may not break out of the html and may not contain tags for content plugins
+		$datatoinsert = cblisthelper_safevalue($datatoinsert, $fieldtype);
 
 		$values[strtolower($fieldtouse)] = array('value' => $datatoinsert, 'hasdata' => $hasdata);
 	}

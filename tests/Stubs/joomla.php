@@ -53,6 +53,17 @@ namespace Joomla\CMS\Uri {
     }
 }
 
+namespace Joomla\CMS\Filter {
+    // The real filter of the Joomla Framework, the CMS class only adds getInstance for this use.
+    class InputFilter extends \Joomla\Filter\InputFilter
+    {
+        public static function getInstance($tagsArray = [], $attrArray = [], $tagsMethod = 0, $attrMethod = 0, $xssAuto = 1)
+        {
+            return new self($tagsArray, $attrArray, $tagsMethod, $attrMethod, $xssAuto);
+        }
+    }
+}
+
 namespace Joomla\CMS\Router {
     class Route
     {
@@ -112,9 +123,11 @@ namespace Joomla\CMS\Plugin {
 
     class PluginHelper
     {
+        public static string $layoutPath = '';
+
         public static function getLayoutPath($type, $name, $layout = 'default')
         {
-            return \dirname(__DIR__, 2) . "/src/plg_{$type}_{$name}/tmpl/$layout.php";
+            return static::$layoutPath ?: \dirname(__DIR__, 2) . "/src/plg_{$type}_{$name}/tmpl/$layout.php";
         }
     }
 }
