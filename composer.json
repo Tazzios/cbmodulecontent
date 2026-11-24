@@ -1,0 +1,18 @@
+{
+    "name": "tazzios/cbmodulecontent",
+    "description": "Joomla package for Community Builder: list module, content plugin and shared library",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "require-dev": {
+        "php": ">=8.1",
+        "ext-pdo_sqlite": "*",
+        "joomla/registry": "^3.0",
+        "phpunit/phpunit": "^10.5"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
