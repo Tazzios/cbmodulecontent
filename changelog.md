@@ -1,10 +1,9 @@
-v5.0.0 November 2026  
+Unreleased  
 New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  
-New: setting "Escape user data" in the module and the plugin, on by default  
 New: tags [profile_url] and [site_url] in the module template and rules  
 New: number of users 0 shows all users of the list  
-Security: user data is escaped in the module and the plugin, HTML in user data is shown as text (based on fixes by [Magnus Hasselquist](https://github.com/magnushasselquist/))  
+Security: user data is escaped in the module and the plugin, HTML in user data is shown as text. Only a CB editor field keeps its HTML, without scripts and dangerous links (based on fixes by [Magnus Hasselquist](https://github.com/magnushasselquist/))  
 Security: [tags] in user data are no longer replaced, only in the template and the rules (based on fixes by Magnus Hasselquist) 
 Security: the debug query is only shown to Super Users (based on fixes by Magnus Hasselquist)  
 Security: user data in the module and plugin output can not contain tags for content plugins  
