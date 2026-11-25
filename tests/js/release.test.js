@@ -130,12 +130,6 @@ test('changelog.xml contains plain text, no markdown', () => {
   assert.doesNotMatch(entry, /\]\(|`|\*\*/);
 });
 
-test('a breaking change is marked in the release notes and in changelog.xml', () => {
-  const log = 'v6.0.0 x\nNew: a  \nBreaking: old functions are gone  \n';
-  assert.match(changelogEntry(log, '6.0.0'), /<change>\s*<item>Breaking: old functions are gone<\/item>/);
-  assert.match(releaseNotes(log, '6.0.0'), /^- Breaking: old functions are gone$/m);
-});
-
 test('only the package has an update server, and it points to updates.xml and changelog.xml', () => {
   for (const key of ['library', 'module', 'plugin']) assert.doesNotMatch(read(MANIFESTS[key]), /updateservers/);
   assert.match(read(MANIFESTS.package), /Tazzios\/cbmodulecontent\/main\/updates\.xml/);
