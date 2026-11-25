@@ -15,8 +15,8 @@ use Joomla\Database\DatabaseFactory;
 use Joomla\Database\DatabaseInterface;
 use Joomla\Database\QueryMonitorInterface;
 use Joomla\Registry\Registry;
-use Tazzios\Module\CbList\Site\Dispatcher\Dispatcher;
-use Tazzios\Module\CbList\Site\Helper\CbListHelper;
+use Tazzios\Module\Cblistmodule\Site\Dispatcher\Dispatcher;
+use Tazzios\Module\Cblistmodule\Site\Helper\CbListHelper;
 use Tazzios\Plugin\Content\Cbprofile\Extension\Cbprofile;
 
 final class Site

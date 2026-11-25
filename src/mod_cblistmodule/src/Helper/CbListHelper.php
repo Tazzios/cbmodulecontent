@@ -6,7 +6,7 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-namespace Tazzios\Module\CbList\Site\Helper;
+namespace Tazzios\Module\Cblistmodule\Site\Helper;
 
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;

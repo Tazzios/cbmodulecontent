@@ -10,7 +10,7 @@ final class ManifestTest extends TestCase
     {
         return [
             'library' => ['src/lib_cblisthelper/cblisthelper.xml', 'Tazzios\\Library\\CbListHelper', ''],
-            'module'  => ['src/mod_cblistmodule/mod_cblistmodule.xml', 'Tazzios\\Module\\CbList', '\\Site'],
+            'module'  => ['src/mod_cblistmodule/mod_cblistmodule.xml', 'Tazzios\\Module\\Cblistmodule', '\\Site'],
             'plugin'  => ['src/plg_content_cbprofile/cbprofile.xml', 'Tazzios\\Plugin\\Content\\Cbprofile', ''],
         ];
     }

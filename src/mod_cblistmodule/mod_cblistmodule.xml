@@ -8,7 +8,7 @@
 	<license>GNU General Public License version 2 or later</license>
 	<version>5.0.1</version>
 	<description>MOD_CBLISTMODULE_XML_DESCRIPTION</description>
-	<namespace path="src">Tazzios\Module\CbList</namespace>
+	<namespace path="src">Tazzios\Module\Cblistmodule</namespace>
 	<files>
 		<folder module="mod_cblistmodule">services</folder>
 		<folder>src</folder>

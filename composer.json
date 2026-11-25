@@ -16,7 +16,7 @@
     "autoload-dev": {
         "psr-4": {
             "Tazzios\\Library\\CbListHelper\\": "src/lib_cblisthelper/src/",
-            "Tazzios\\Module\\CbList\\Site\\": "src/mod_cblistmodule/src/",
+            "Tazzios\\Module\\Cblistmodule\\Site\\": "src/mod_cblistmodule/src/",
             "Tazzios\\Plugin\\Content\\Cbprofile\\": "src/plg_content_cbprofile/src/"
         }
     },

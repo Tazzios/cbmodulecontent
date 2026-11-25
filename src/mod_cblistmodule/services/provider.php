@@ -19,8 +19,8 @@ use Joomla\DI\ServiceProviderInterface;
 return new class () implements ServiceProviderInterface {
     public function register(Container $container): void
     {
-        $container->registerServiceProvider(new ModuleDispatcherFactory('\\Tazzios\\Module\\CbList'));
-        $container->registerServiceProvider(new HelperFactory('\\Tazzios\\Module\\CbList\\Site\\Helper'));
+        $container->registerServiceProvider(new ModuleDispatcherFactory('\\Tazzios\\Module\\Cblistmodule'));
+        $container->registerServiceProvider(new HelperFactory('\\Tazzios\\Module\\Cblistmodule\\Site\\Helper'));
         $container->registerServiceProvider(new Module());
     }
 };
