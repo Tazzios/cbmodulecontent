@@ -118,7 +118,7 @@ function sectionBody(text, version) {
 
 function releaseNotes(text, version) {
   const body = sectionBody(text, version);
-  const items = body.map((l) => (/^(New|Fix|Fixed|Improved|Update|Security|Removed|Changed):/i.test(l) ? `- ${l}` : l));
+  const items = body.map((l) => (/^(Breaking|New|Fix|Fixed|Improved|Update|Security|Removed|Changed):/i.test(l) ? `- ${l}` : l));
   return [
     ...items,
     '',
@@ -304,7 +304,7 @@ const CHANGE_TYPES = [
   [/^security$/i, 'security'],
   [/^fix(ed)?$/i, 'fix'],
   [/^(new|added)$/i, 'addition'],
-  [/^(improved|update|updated|changed)$/i, 'change'],
+  [/^(breaking|improved|update|updated|changed)$/i, 'change'],
   [/^removed?$/i, 'remove'],
   [/^language$/i, 'language'],
 ];
@@ -330,6 +330,7 @@ function changelogEntry(text, version) {
     const type = (m && (CHANGE_TYPES.find(([re]) => re.test(m[1])) || [])[1]) || 'note';
     let item = m && type !== 'note' ? m[2] : line.trim();
     if (m && /^update/i.test(m[1])) item = `Update: ${m[2]}`;
+    if (m && /^breaking$/i.test(m[1])) item = `Breaking: ${m[2]}`;
     (groups[type] = groups[type] || []).push(plainText(item).trim());
   }
   const blocks = TYPE_ORDER.filter((t) => groups[t]).map((t) => [

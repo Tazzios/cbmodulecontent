@@ -1,8 +1,8 @@
-Unreleased  
+Unreleased
+Breaking: own PHP code that uses the old functions or classes (cblisthelper_createquery, getcblistusers, createoutput, db_field_replace, modcbListHelper, PlgContentcbprofile) or includes cblisthelper.php stops with an error. Use the classes of the library instead. Module settings, {cbprofile} tags, templates and own layouts are not affected
 New: English and Dutch translations of the module, the plugin, the library and the package  
 New: the module has layouts (tmpl), also as override in the template  
 Changed: module, plugin and library use the structure of Joomla 5 and 6 (namespaces, service providers, events) and no longer need the Backward Compatibility plugin  
-Changed: the library has classes (Tazzios\Library\CbListHelper) instead of global functions  
 Improved: fewer database queries in the module  
 Changed: the package checks for Joomla 5.0 and PHP 8.1 and removes the files of older versions  
 
