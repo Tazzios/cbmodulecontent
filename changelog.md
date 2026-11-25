@@ -1,3 +1,11 @@
+Unreleased  
+New: English and Dutch translations of the module, the plugin, the library and the package  
+New: the module has layouts (tmpl), also as override in the template  
+Changed: module, plugin and library use the structure of Joomla 5 and 6 (namespaces, service providers, events) and no longer need the Backward Compatibility plugin  
+Changed: the library has classes (Tazzios\Library\CbListHelper) instead of global functions  
+Improved: fewer database queries in the module  
+Changed: the package checks for Joomla 5.0 and PHP 8.1 and removes the files of older versions  
+
 v5.0.1 November 2026  
 New: package "CB module & content" (pkg_cbmodulecontent) with the module, the content plugin and the library they share, all with the same version number  
 New: module output is processed by content plugins, so tags like {cbprofile} work in the module  

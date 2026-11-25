@@ -1,8 +1,8 @@
 <?php
 
-use Joomla\CMS\Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Tazzios\Library\CbListHelper\ListQuery;
 use Tests\Stubs\Site;
 
 final class CblistHelperTest extends TestCase
@@ -15,10 +15,17 @@ final class CblistHelperTest extends TestCase
     /** @return int[] the users the query of the list really finds */
     private function users(int $listId = 1): array
     {
-        $sql  = cblisthelper_createquery($listId, null)['cblistselect'];
-        $rows = Factory::$db->setQuery($sql . ' ORDER BY ue.id')->loadAssocList();
+        $listQuery = new ListQuery(Site::$db);
+        $query     = $listQuery->getQuery($listQuery->getListById($listId))->order('ue.id');
 
-        return array_map('intval', array_column($rows, 'id'));
+        return array_map('intval', Site::$db->setQuery($query)->loadColumn());
+    }
+
+    private function order(int $listId): array
+    {
+        $listQuery = new ListQuery(Site::$db);
+
+        return $listQuery->getOrder($listQuery->getListById($listId));
     }
 
     public static function filters(): array
@@ -108,7 +115,7 @@ final class CblistHelperTest extends TestCase
     {
         Site::cbList(3, [['name', '=', 'Dolly']], 'only dolly');
 
-        $this->assertStringContainsString("`name` = 'Dolly'", cblisthelper_createquery(null, 'only dolly')['cblistselect']);
+        $this->assertStringContainsString("`name` = 'Dolly'", (string) (new ListQuery(Site::$db))->getQuery((new ListQuery(Site::$db))->getListByTitle('only dolly')));
     }
 
     public function testContainsPercentFindsTheRealCharacter(): void
@@ -137,8 +144,8 @@ final class CblistHelperTest extends TestCase
 
     public function testEmptyAlsoMatchesAnEmptyText(): void
     {
-        Factory::$db->exec("UPDATE jos_comprofiler SET cb_color = '' WHERE user_id = 653");
-        Factory::$db->exec("UPDATE jos_comprofiler SET cb_color = 'red' WHERE user_id = 654");
+        Site::exec("UPDATE jos_comprofiler SET cb_color = '' WHERE user_id = 653");
+        Site::exec("UPDATE jos_comprofiler SET cb_color = 'red' WHERE user_id = 654");
         Site::cbList(1, [['cb_color', 'EMPTY', '']]);
         Site::cbList(2, [['cb_color', 'NOT EMPTY', '']]);
 
@@ -157,19 +164,25 @@ final class CblistHelperTest extends TestCase
     public function testListWithoutSortOrParams(): void
     {
         Site::cbList(1, [], 'x', ['sort_basic' => []]);
-        Factory::$db->exec("INSERT INTO jos_comprofiler_lists VALUES (2,'y',1,'2','')");
+        Site::exec("INSERT INTO jos_comprofiler_lists VALUES (2,'y',1,'2','')");
 
-        $this->assertSame('ue.id', cblisthelper_createquery(1, null)['cblistsortby']);
+        $this->assertSame(['`ue`.`id`', 'ASC'], $this->order(1));
         $this->assertSame([Site::DOLLY, Site::ELLY, Site::DUCK], $this->users(2));
     }
 
     public function testSortColumnAndDirectionAreChecked(): void
     {
         Site::cbList(1, [], 'x', ['sort_basic' => [['column' => '(SELECT 1)', 'direction' => 'ASC; DROP']]]);
-        $query = cblisthelper_createquery(1, null);
 
-        $this->assertSame('ue.id', $query['cblistsortby']);
-        $this->assertSame('ASC', $query['cblistsortorder']);
+        $this->assertSame(['`ue`.`id`', 'ASC'], $this->order(1));
+    }
+
+    public function testUserInTwoGroupsIsFoundOnce(): void
+    {
+        Site::exec('INSERT INTO jos_user_usergroup_map VALUES (?,3)', [Site::DOLLY]);
+        Site::cbList(1, [], 'x', [], '2|*|3');
+
+        $this->assertSame([Site::DOLLY, Site::ELLY, Site::DUCK], $this->users());
     }
 
     public function testUnknownListHasNoUsers(): void
@@ -177,23 +190,17 @@ final class CblistHelperTest extends TestCase
         $this->assertSame([], $this->users(99));
     }
 
-    public function testListIdAndNameAreSafeInTheQuery(): void
+    public function testListNameIsSafeInTheQuery(): void
     {
-        Site::cbList(1);
-
-        cblisthelper_createquery('1 OR 1=1', null);
-        $this->assertStringContainsString('listid = 1 AND published=1', end(Factory::$db->log));
-        cblisthelper_createquery(null, "x' OR '1'='1");
-        $this->assertStringContainsString("title = 'x'' OR ''1''=''1' AND", end(Factory::$db->log));
+        $this->assertNull((new ListQuery(Site::$db))->getListByTitle("x' OR '1'='1"));
+        $this->assertStringContainsString("`title` = 'x'' OR ''1''=''1'", end(Site::$log));
     }
 
     public function testSortOfTheListIsReturnedSeparately(): void
     {
         Site::cbList(1, [], 'x', ['sort_basic' => [['column' => 'name', 'direction' => 'DESC']]]);
-        $query = cblisthelper_createquery(1, null);
 
-        $this->assertSame('u.`name`', $query['cblistsortby']);
-        $this->assertSame('DESC', $query['cblistsortorder']);
-        $this->assertStringNotContainsString('ORDER BY', $query['cblistselect']);
+        $this->assertSame(['`u`.`name`', 'DESC'], $this->order(1));
+        $this->assertStringNotContainsString('ORDER BY', (string) (new ListQuery(Site::$db))->getQuery((new ListQuery(Site::$db))->getListById(1)));
     }
 }

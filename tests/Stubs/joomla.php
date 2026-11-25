@@ -3,37 +3,47 @@
 /**
  * Minimal stand-ins for the Joomla CMS classes the extensions use.
  *
- * joomla/registry (parameters) is the real package, installed through Composer.
- * The database is a real SQLite database in memory (see Site.php), so the
- * queries are really executed.
+ * The packages of the Joomla Framework (database, event, filter, registry) are the real ones,
+ * installed through Composer. The database is SQLite in memory (see Site.php), so the queries
+ * are really executed.
  */
 
-namespace Joomla\CMS {
-    class Factory
+namespace Joomla\CMS\User {
+    class User
     {
-        public static ?\Tests\Stubs\Database $db = null;
-        /** @var int[] view levels of the visitor */
-        public static array $viewLevels = [1];
-        public static bool $superUser = false;
-
-        public static function getDbo()
+        public function __construct(private array $viewLevels, private bool $superUser)
         {
-            return static::$db;
         }
 
-        public static function getUser()
+        public function getAuthorisedViewLevels()
         {
-            return new class {
-                public function getAuthorisedViewLevels()
-                {
-                    return Factory::$viewLevels;
-                }
+            return $this->viewLevels;
+        }
 
-                public function authorise($action)
-                {
-                    return $action === 'core.admin' && Factory::$superUser;
+        public function authorise($action)
+        {
+            return $action === 'core.admin' && $this->superUser;
+        }
+    }
+}
+
+namespace Joomla\CMS\Language {
+    class Text
+    {
+        private static ?array $strings = null;
+
+        // The English texts of the extensions.
+        public static function _($key)
+        {
+            if (self::$strings === null) {
+                self::$strings = [];
+
+                foreach (glob(\dirname(__DIR__, 2) . '/src/*/language/en-GB/*.ini') as $file) {
+                    self::$strings += parse_ini_file($file);
                 }
-            };
+            }
+
+            return self::$strings[$key] ?? $key;
         }
     }
 }
@@ -78,12 +88,29 @@ namespace Joomla\CMS\Router {
     }
 }
 
+namespace Joomla\CMS\Event\Content {
+    class ContentPrepareEvent
+    {
+        public function __construct(string $name, private array $arguments)
+        {
+        }
+
+        public function getContext(): string
+        {
+            return $this->arguments['context'];
+        }
+
+        public function getItem(): object
+        {
+            return $this->arguments['subject'];
+        }
+    }
+}
+
 namespace Joomla\CMS\HTML {
     class HTMLHelper
     {
-        /** @var array<int, array{context: string, text: string, params: mixed}> */
-        public static array $calls = [];
-        /** @var callable[] content plugins: fn(string $context, object $article, $params) */
+        /** @var callable[] content plugins: fn(string $context, object $article) */
         public static array $contentPlugins = [];
 
         // Only content.prepare. Like the real one, plugins get an object with the text.
@@ -93,14 +120,13 @@ namespace Joomla\CMS\HTML {
                 throw new \InvalidArgumentException($key);
             }
 
-            [$text, $params, $context] = $args + ['', null, 'text'];
-            static::$calls[] = ['context' => $context, 'text' => $text, 'params' => $params];
+            [$text, , $context] = $args + ['', null, 'text'];
 
             $article       = new \stdClass();
             $article->text = $text;
 
             foreach (static::$contentPlugins as $plugin) {
-                $plugin($context, $article, $params);
+                $plugin($context, $article);
             }
 
             return $article->text;
@@ -115,9 +141,14 @@ namespace Joomla\CMS\Plugin {
     {
         public $params;
 
-        public function __construct($subject = null, array $config = [])
+        public function __construct($config = [])
         {
             $this->params = new Registry($config['params'] ?? []);
+        }
+
+        public function loadLanguage()
+        {
+            return true;
         }
     }
 
@@ -128,6 +159,61 @@ namespace Joomla\CMS\Plugin {
         public static function getLayoutPath($type, $name, $layout = 'default')
         {
             return static::$layoutPath ?: \dirname(__DIR__, 2) . "/src/plg_{$type}_{$name}/tmpl/$layout.php";
+        }
+    }
+}
+
+namespace Joomla\CMS\Helper {
+    interface HelperFactoryAwareInterface
+    {
+    }
+
+    trait HelperFactoryAwareTrait
+    {
+        private $helperFactory;
+
+        public function getHelperFactory()
+        {
+            return $this->helperFactory;
+        }
+
+        public function setHelperFactory($helperFactory): void
+        {
+            $this->helperFactory = $helperFactory;
+        }
+    }
+}
+
+namespace Joomla\CMS\Dispatcher {
+    use Joomla\Registry\Registry;
+
+    // Runs the layout of the module like the real one.
+    abstract class AbstractModuleDispatcher
+    {
+        public function __construct(protected \stdClass $module, protected $app)
+        {
+        }
+
+        public function dispatch()
+        {
+            $loader = static function (array $displayData) {
+                extract($displayData);
+                unset($displayData);
+
+                require \dirname(__DIR__, 2) . '/src/' . $module->module . '/tmpl/default.php';
+            };
+
+            $loader($this->getLayoutData());
+        }
+
+        protected function getLayoutData()
+        {
+            return ['module' => $this->module, 'app' => $this->app, 'params' => new Registry($this->module->params)];
+        }
+
+        protected function getApplication()
+        {
+            return $this->app;
         }
     }
 }
