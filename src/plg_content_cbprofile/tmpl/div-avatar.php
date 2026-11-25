@@ -1,27 +1,30 @@
 <?php
-/*
-* @copyright   2022
-* @author      Tazzios 
-* @license     GNU General Public License version 2 or later; see LICENSE.txt
+
+/**
+ * @package    CB module & content
+ * @copyright  2022 Tazzios
+ * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Uri\Uri;
 
-/* Check if there is an approved avatar else use the nophoto image*/
-if ($userprofile['avatarapproved']==1 and strlen((string) $userprofile['avatar'])>0 ){
-	$avatarsource= URI::base().'images/comprofiler/'. $userprofile['avatar'];
-}
-else {
-	$avatarsource= URI::base().'components/com_comprofiler/plugin/templates/default/images/avatar/tnnophoto_n.png';
-}
+/**
+ * @var array $userprofile  The data of the user, safe to show
+ * @var array $imagesize    The width and height of the avatar
+ */
+
+$hasAvatar = (int) $userprofile['avatarapproved'] === 1 && (string) $userprofile['avatar'] !== '';
+$avatar    = $hasAvatar
+    ? Uri::base() . 'images/comprofiler/' . $userprofile['avatar']
+    : Uri::base() . 'components/com_comprofiler/plugin/templates/default/images/avatar/tnnophoto_n.png';
 
 ?>
-
-
-<Div class="cbprofile-userprofile" style="vertical-align: top;display: inline-block;overflow-wrap: break-word;padding: 5px;width: <?php echo $imagesize['width']; ?>px;">
-<a href="<?php echo URI::base();?>index.php?option=com_comprofiler&task=userProfile&user=<?php echo $userprofile['id']; ?>">
-	 <img src="<?php echo $avatarsource; ?>" alt="<?php echo $userprofile['name']; ?>" title="<?php echo $userprofile['name']; ?>" class="cbprofile-avatar" width="<?php echo $imagesize['width']; ?>" height="<?php echo $imagesize['height']; ?>">
-	</a>
-</div> 				
+<div class="cbprofile-userprofile" style="vertical-align: top;display: inline-block;overflow-wrap: break-word;padding: 5px;width: <?php echo $imagesize['width']; ?>px;">
+    <a href="<?php echo Uri::base(); ?>index.php?option=com_comprofiler&task=userProfile&user=<?php echo $userprofile['id']; ?>">
+        <img src="<?php echo $avatar; ?>" alt="<?php echo $userprofile['name']; ?>" title="<?php echo $userprofile['name']; ?>" class="cbprofile-avatar" width="<?php echo $imagesize['width']; ?>" height="<?php echo $imagesize['height']; ?>">
+    </a>
+</div>
