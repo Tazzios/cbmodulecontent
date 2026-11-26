@@ -2,11 +2,11 @@ name: Offer update to existing installs
 
 # Second step of a release, started by hand from the Actions tab after the
 # workflow "Release". Adds the version to updates.xml, adds its changes to
-# changelog.xml (the Changelog button in Joomla's update list) and opens a pull
-# request with that change.
+# changelog.xml (the Changelog button in Joomla's update list) and commits that
+# to main.
 #
-# Nothing is offered until you merge that pull request: from that moment
-# every site with the package sees the update in Joomla.
+# Starting this workflow is the moment every site with the package sees the
+# update in Joomla, so only start it after you have tested the zip.
 
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   offer:
@@ -65,19 +64,22 @@ jobs:
           xmllint --noout updates.xml changelog.xml
           rm -rf dist
 
-      - name: Open a pull request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          branch: offer-update/${{ steps.release.outputs.version }}
-          commit-message: Offer version ${{ steps.release.outputs.version }} to existing installs
-          title: Offer version ${{ steps.release.outputs.version }} to existing installs
-          body: |
-            Adds version ${{ steps.release.outputs.version }} to `updates.xml`, and its changes from changelog.md to `changelog.xml`.
-
-            **Merging this pull request publishes the update:** every Joomla site with the package then sees version ${{ steps.release.outputs.version }} under System, Update, Extensions.
-
-            - Download: https://github.com/${{ github.repository }}/releases/download/v${{ steps.release.outputs.version }}/pkg_cbmodulecontent-${{ steps.release.outputs.version }}.zip
-            - sha256: `${{ steps.release.outputs.sha256 }}`
-
-            Sites with only the separate module or plugin (before 5.0.0) look in the old repositories, see "Separate installs" in README.md.
-          delete-branch: true
+      - name: Commit to main
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add updates.xml changelog.xml
+          git commit -m "Offer version $VERSION to existing installs"
+          git push origin HEAD:main
+          {
+            echo "### Version $VERSION is offered"
+            echo
+            echo "Every site with the package now sees it under System, Update, Extensions."
+            echo
+            echo "- Download: https://github.com/${{ github.repository }}/releases/download/v$VERSION/pkg_cbmodulecontent-$VERSION.zip"
+            echo "- sha256: \`${{ steps.release.outputs.sha256 }}\`"
+            echo
+            echo 'Sites with only the separate module or plugin (before 5.0.0) look in the old repositories, see "Separate installs" in README.md.'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -50,11 +50,10 @@ two steps, both started by hand from the Actions tab:
    and tag are public, also with the option draft. Existing installs are not offered the update yet.
 2. **Offer update to existing installs**, after you have tested the zip from the release. It adds the
    version to `updates.xml`, its changes to `changelog.xml` (the Changelog button in Joomla's update
-   list) and opens a pull request. Merging that pull request is the moment every site with the package
-   sees the update.
+   list) and commits that to main. Running it is the moment every site with the package sees the
+   update, so there is no approval step: test the zip first.
 
-This needs the repository setting "Allow GitHub Actions to create and approve pull requests"
-(Settings, Actions, General), and the Release workflow must be allowed to push to main.
+Both workflows must be allowed to push to main.
 
 The same steps work locally:
 ```
