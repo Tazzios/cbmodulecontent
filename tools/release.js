@@ -222,6 +222,7 @@ function build() {
   }
   const pkg = zip([
     ['pkg_cbmodulecontent.xml', Buffer.from(read(MANIFESTS.package))],
+    ...filesIn('package'),
     ...['lib_cblisthelper', 'mod_cblistmodule', 'plg_content_cbprofile']
       .map((ext) => [`packages/${ext}.zip`, zip(filesIn(`src/${ext}`))]),
   ]);

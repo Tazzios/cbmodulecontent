@@ -1,43 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension type="plugin" group="content" method="upgrade">
-	<name>Content - cbprofile</name>
+	<name>PLG_CONTENT_CBPROFILE</name>
 	<author>Tazzios</author>
-	<creationDate>November 2026</creationDate>
-	<copyright></copyright>
-	<license>GNU/GPLv3 www.gnu.org/licenses/gpl-3.0.html</license>
-	<authorEmail></authorEmail>
 	<authorUrl>https://github.com/Tazzios</authorUrl>
+	<creationDate>November 2026</creationDate>
+	<copyright>(C) 2022 Tazzios</copyright>
+	<license>GNU General Public License version 2 or later</license>
 	<version>5.0.1</version>
-	<description>content plugin for CB profiles</description>
+	<description>PLG_CONTENT_CBPROFILE_XML_DESCRIPTION</description>
+	<namespace path="src">Tazzios\Plugin\Content\Cbprofile</namespace>
 	<files>
-		<filename plugin="cbprofile">cbprofile.php</filename>
-		<filename>index.html</filename>
-		<filename>cbprofile.xml</filename>
+		<folder plugin="cbprofile">services</folder>
+		<folder>src</folder>
 		<folder>tmpl</folder>
+		<folder>language</folder>
 	</files>
 
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
-			
-
-			<field 
-				name="imagewidth" 
-				type="int" default="150" 
-				label="image width px " 
-				description=""
-			/>
-			<field 
-				name="imageheight" 
-				type="int" default="150" 
-				label="image height px" 
-				description=""
-			/>
-			<field name="layout" type="filelist" default="default" label="Default template" description="" directory="/plugins/content/cbprofile/tmpl" filter=".php" exclude="" stripext="true" />
-			
+				<field
+					name="imagewidth"
+					type="number"
+					default="150"
+					min="1"
+					label="PLG_CONTENT_CBPROFILE_FIELD_IMAGEWIDTH"
+				/>
+				<field
+					name="imageheight"
+					type="number"
+					default="150"
+					min="1"
+					label="PLG_CONTENT_CBPROFILE_FIELD_IMAGEHEIGHT"
+				/>
+				<field
+					name="layout"
+					type="filelist"
+					default="div-default"
+					label="PLG_CONTENT_CBPROFILE_FIELD_LAYOUT"
+					directory="/plugins/content/cbprofile/tmpl"
+					fileFilter="\.php$"
+					hide_none="true"
+					hide_default="true"
+					stripext="true"
+				/>
 			</fieldset>
-
-			
 		</fields>
 	</config>
 </extension>

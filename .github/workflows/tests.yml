@@ -26,7 +26,7 @@ jobs:
           coverage: none
       - name: PHP syntax check
         run: |
-          find src tests -name '*.php' -print0 \
+          find package src tests -name '*.php' -print0 \
             | xargs -0 -n1 php -l
 
   manifests:
@@ -48,10 +48,27 @@ jobs:
             for d in $(xmllint --xpath '//files/folder/text()' "$manifest" 2>/dev/null); do
               test -d "$dir/$d" || { echo "::error file=$manifest::missing folder $d"; exit 1; }
             done
+            for l in $(xmllint --xpath '//languages/language/text()' "$manifest" 2>/dev/null); do
+              test -f "$dir/language/$l" || { echo "::error file=$manifest::missing language $l"; exit 1; }
+            done
           done
           for z in $(xmllint --xpath '//files/file/text()' pkg_cbmodulecontent.xml); do
             test -d "src/${z%.zip}" || { echo "::error file=pkg_cbmodulecontent.xml::missing folder src/${z%.zip}"; exit 1; }
           done
+
+  codestyle:
+    name: Code style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Install dependencies
+        run: composer update --no-interaction --no-progress --prefer-dist
+      - name: PSR-12
+        run: vendor/bin/phpcs
 
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})

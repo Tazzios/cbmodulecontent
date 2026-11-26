@@ -1,6 +1,5 @@
 <?php
 
-use Joomla\CMS\Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Tests\Stubs\Site;
@@ -15,10 +14,8 @@ final class ContentPluginTest extends TestCase
 
     private function prepare(string $text, string $context = 'com_content.article', array $settings = []): string
     {
-        $plugin  = new PlgContentcbprofile(null, ['params' => $settings + ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 140]]);
         $article = (object) ['text' => $text];
-        $params  = null;
-        $plugin->onContentPrepare($context, $article, $params);
+        Site::prepare($article, $context, $settings + ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 140]);
 
         return $article->text;
     }
@@ -34,7 +31,7 @@ final class ContentPluginTest extends TestCase
     public function testTextWithoutTagIsUntouched(): void
     {
         $this->assertSame('<p>Hello</p>', $this->prepare('<p>Hello</p>'));
-        $this->assertSame([], Factory::$db->log);
+        $this->assertSame([], Site::$log);
     }
 
     public function testSmartSearchIndexerIsSkipped(): void
@@ -112,9 +109,9 @@ final class ContentPluginTest extends TestCase
     public function testMaliciousTag(string $text, array $expected): void
     {
         $this->assertSame($expected, $this->shown($text));
-        $this->assertSame('4', (string) Factory::$db->setQuery('SELECT COUNT(*) n FROM #__users')->loadAssoc()['n']);
+        $this->assertSame('4', (string) Site::$db->setQuery('SELECT COUNT(*) FROM #__users')->loadResult());
 
-        foreach (Factory::$db->log as $query) {
+        foreach (Site::$log as $query) {
             // Nothing from the tag outside a quoted value.
             $this->assertDoesNotMatchRegularExpression('#/\*\*/|password|DROP#', preg_replace("/'(?:[^']|'')*'/", "''", $query));
         }
@@ -157,7 +154,7 @@ final class ContentPluginTest extends TestCase
 
     public function testEmailInQuotes(): void
     {
-        Factory::$db->exec('UPDATE jos_users SET email = ? WHERE id = ?', ['duck toy@example.org', Site::DUCK]);
+        Site::exec('UPDATE jos_users SET email = ? WHERE id = ?', ['duck toy@example.org', Site::DUCK]);
 
         $this->assertSame([Site::DOLLY], $this->shown('{cbprofile email="dolphine@example.org"}'));
         $this->assertSame([Site::DOLLY, Site::ELLY], $this->shown('{cbprofile email="dolphine@example.org|elifante@example.org"}'));
@@ -203,7 +200,7 @@ final class ContentPluginTest extends TestCase
     {
         Joomla\CMS\Plugin\PluginHelper::$layoutPath = \dirname(__DIR__) . '/Stubs/layout.php';
         $about = '<p>Hi <strong>there</strong></p><script>alert(1)</script><img src="x.png" onerror="alert(1)"><a href="javascript:alert(1)">x</a>{loadposition x}';
-        Factory::$db->exec('UPDATE jos_comprofiler SET cb_about = ?, cb_city = ? WHERE id = ?', [$about, '<i>Utrecht</i>', Site::DOLLY]);
+        Site::exec('UPDATE jos_comprofiler SET cb_about = ?, cb_city = ? WHERE id = ?', [$about, '<i>Utrecht</i>', Site::DOLLY]);
         $html = $this->prepare('{cbprofile username=Dolphine}');
 
         $this->assertStringContainsString('<p>Hi <strong>there</strong></p>', $html);
@@ -219,6 +216,32 @@ final class ContentPluginTest extends TestCase
 
         $this->assertStringContainsString('&#123;loadposition secret&#125;', $html);
         $this->assertStringNotContainsString('{', $html);
+    }
+
+    public function testItemWithoutTextIsSkipped(): void
+    {
+        $article = new stdClass();
+        Site::prepare($article, 'com_content.article', []);
+
+        $this->assertSame([], Site::$log);
+    }
+
+    public function testSubscribesToContentPrepare(): void
+    {
+        $this->assertSame(
+            ['onContentPrepare' => 'onContentPrepare'],
+            Tazzios\Plugin\Content\Cbprofile\Extension\Cbprofile::getSubscribedEvents()
+        );
+    }
+
+    public function testOrderAndTopWithUsernames(): void
+    {
+        $this->assertSame([655, 654], $this->shown('{cbprofile username=Dolphine|elifantE|DuckT orderby=registerdate order=asc top=2}'));
+        $this->assertSame([653, 654], $this->shown('{cbprofile username=Dolphine|elifantE|DuckT top=2}'));
+        $this->assertSame([655, 654], $this->shown('{cbprofile username=Dolphine|elifantE|DuckT order=desc top=2}'));
+        $this->assertSame([655, 653], $this->shown('{cbprofile username=DUCKT|dolphine}'));
+        $this->assertCount(2, $this->shown('{cbprofile cblistid=4 order=random orderby=name top=2}'));
+        $this->assertSame([654, 655], $this->shown('{cbprofile cblistid=4 orderby=name order=desc top=2}'));
     }
 
     public function testUnknownUserGivesMessage(): void
@@ -249,7 +272,7 @@ final class ContentPluginTest extends TestCase
         $this->assertStringContainsString('src="https://example.org/images/comprofiler/gallery/653.png"', $this->prepare($tag));
 
         foreach (['avatarapproved = 0', 'avatarapproved = 1, avatar = NULL', "avatarapproved = 1, avatar = ''"] as $set) {
-            Factory::$db->exec("UPDATE jos_comprofiler SET $set");
+            Site::exec("UPDATE jos_comprofiler SET $set");
             $html = $this->prepare($tag);
             $this->assertStringNotContainsString('<img', $html, $set);
             $this->assertStringContainsString('Dolly', $html, $set);
@@ -275,11 +298,11 @@ final class ContentPluginTest extends TestCase
         $tag = "{cbprofile username=Dolphine layout=$layout}";
         $this->assertStringContainsString('gallery/653.png', $this->prepare($tag));
 
-        Factory::$db->exec('UPDATE jos_comprofiler SET avatarapproved = 0');
+        Site::exec('UPDATE jos_comprofiler SET avatarapproved = 0');
         $this->assertStringContainsString('tnnophoto_n.png', $this->prepare($tag));
         $this->assertStringNotContainsString('gallery/653.png', $this->prepare($tag));
 
-        Factory::$db->exec('UPDATE jos_comprofiler SET avatarapproved = 1, avatar = NULL');
+        Site::exec('UPDATE jos_comprofiler SET avatarapproved = 1, avatar = NULL');
         $this->assertStringContainsString('tnnophoto_n.png', $this->prepare($tag));
     }
 

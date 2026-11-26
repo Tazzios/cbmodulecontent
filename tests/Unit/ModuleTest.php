@@ -1,6 +1,5 @@
 <?php
 
-use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\Registry\Registry;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -35,16 +34,15 @@ final class ModuleTest extends TestCase
     /** @return string[] the names that are shown, in order */
     private function names(array $params = []): array
     {
-        preg_match_all('#<b>(.*?)</b>#', modcbListHelper::getData($this->params($params)), $m);
+        preg_match_all('#<b>(.*?)</b>#', Site::module($this->params($params)), $m);
 
         return $m[1];
     }
 
     private function usePlugin(): void
     {
-        HTMLHelper::$contentPlugins[] = static function ($context, $article, $params): void {
-            (new PlgContentcbprofile(null, ['params' => ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 150]]))
-                ->onContentPrepare($context, $article, $params);
+        HTMLHelper::$contentPlugins[] = static function ($context, $article): void {
+            Site::prepare($article, $context, ['layout' => 'text-default', 'imagewidth' => 150, 'imageheight' => 150]);
         };
     }
 
@@ -71,8 +69,8 @@ final class ModuleTest extends TestCase
 
     public function testColumns(): void
     {
-        $this->assertStringContainsString('repeat(auto-fit, minmax(5rem, 1fr))', modcbListHelper::getData($this->params()));
-        $this->assertStringContainsString('repeat(2, minmax(5rem, 1fr))', modcbListHelper::getData($this->params(['columns' => '2'])));
+        $this->assertStringContainsString('repeat(auto-fit, minmax(5rem, 1fr))', Site::module($this->params()));
+        $this->assertStringContainsString('repeat(2, minmax(5rem, 1fr))', Site::module($this->params(['columns' => '2'])));
     }
 
     public function testRuleWithAccessLevel(): void
@@ -81,7 +79,7 @@ final class ModuleTest extends TestCase
         $set   = ['rules' => $rules, 'template' => '<b>[Linked_name]</b>'];
 
         $this->assertSame(['', '', ''], $this->names($set));
-        Factory::$viewLevels = [1, 2];
+        Site::$viewLevels = [1, 2];
         $this->assertSame(['<i>Dolly</i>', '<i>Elly elifant</i>', '<i>Duck Toy</i>'], $this->names($set));
     }
 
@@ -92,7 +90,7 @@ final class ModuleTest extends TestCase
             $seen[]        = [$context, \is_object($article)];
             $article->text = strtoupper($article->text);
         };
-        $html = modcbListHelper::getData($this->params(['text-above' => 'above', 'text-below' => 'below']));
+        $html = Site::module($this->params(['text-above' => 'above', 'text-below' => 'below']));
 
         // Joomla 5+ only accepts an object for onContentPrepare.
         $this->assertSame([['mod_cblistmodule.content', true]], $seen);
@@ -103,7 +101,7 @@ final class ModuleTest extends TestCase
     public function testCbprofileTagAboveAndBelowTheList(): void
     {
         $this->usePlugin();
-        $html = modcbListHelper::getData($this->params([
+        $html = Site::module($this->params([
             'text-above' => '<p>{cbprofile username=Dolphine}</p>',
             'text-below' => '<p>{cbprofile username=DuckT}</p>',
         ]));
@@ -117,8 +115,8 @@ final class ModuleTest extends TestCase
     public function testTagInUserDataIsNotProcessed(): void
     {
         $this->usePlugin();
-        Factory::$db->exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
-        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_city]</b>']));
+        Site::exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
+        $html = Site::module($this->params(['template' => '<b>[cb_city]</b>']));
 
         $this->assertStringContainsString('<b>&#123;cbprofile username=DuckT&#125;</b>', $html);
         $this->assertStringNotContainsString('&user=', $html);
@@ -128,8 +126,8 @@ final class ModuleTest extends TestCase
     public function testTagInUserDataIsNotProcessedInARule(): void
     {
         $this->usePlugin();
-        Factory::$db->exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
-        $html = modcbListHelper::getData($this->params([
+        Site::exec('UPDATE jos_comprofiler SET cb_city = ? WHERE user_id = ?', ['{cbprofile username=DuckT}', Site::DOLLY]);
+        $html = Site::module($this->params([
             'template' => '<b>[cb_city]</b>',
             'rules'    => ['rules0' => ['tag_name' => 'cb_city', 'accesslevel' => ['1'], 'htmlcode' => 'in [cb_city]', 'htmlcode_no' => '']],
         ]));
@@ -141,25 +139,25 @@ final class ModuleTest extends TestCase
     public function testTagInTheTemplateIsProcessed(): void
     {
         $this->usePlugin();
-        $html = modcbListHelper::getData($this->params(['template' => '{cbprofile username=[username]}']));
+        $html = Site::module($this->params(['template' => '{cbprofile username=[username]}']));
 
         $this->assertStringNotContainsString('{', $html);
     }
 
     public function testDebugIsOnlyForSuperUsers(): void
     {
-        $this->assertStringNotContainsString('DEBUG', modcbListHelper::getData($this->params(['debug' => '1'])));
+        $this->assertStringNotContainsString('DEBUG', Site::module($this->params(['debug' => '1'])));
 
-        Factory::$superUser = true;
-        $this->assertStringContainsString('DEBUG: <pre>SELECT DISTINCT', modcbListHelper::getData($this->params(['debug' => '1'])));
-        $this->assertStringNotContainsString('DEBUG', modcbListHelper::getData($this->params()));
+        Site::$superUser = true;
+        $this->assertMatchesRegularExpression('~DEBUG: <pre>\s*SELECT `ue`\.`id`~', Site::module($this->params(['debug' => '1'])));
+        $this->assertStringNotContainsString('DEBUG', Site::module($this->params()));
     }
 
     public function testDebugQueryIsEscaped(): void
     {
-        Factory::$superUser = true;
+        Site::$superUser = true;
         Site::cbList(5, [['name', '=', '<b>{loadposition x}']], 'html');
-        $html = modcbListHelper::getData($this->params(['listid' => '5', 'debug' => '1']));
+        $html = Site::module($this->params(['listid' => '5', 'debug' => '1']));
 
         $this->assertStringContainsString('&lt;b&gt;&#123;loadposition x&#125;', $html);
     }
@@ -167,14 +165,14 @@ final class ModuleTest extends TestCase
     private function setUserData(string $column, $value): void
     {
         $table = $column === 'name' ? 'jos_users' : 'jos_comprofiler';
-        Factory::$db->exec("UPDATE $table SET $column = ? WHERE id = ?", [$value, Site::DOLLY]);
+        Site::exec("UPDATE $table SET $column = ? WHERE id = ?", [$value, Site::DOLLY]);
     }
 
     public function testUserDataIsEscaped(): void
     {
         $this->setUserData('name', 'x" onerror="alert(1)');
         $this->setUserData('cb_city', '<script>alert(1)</script>\'');
-        $html = modcbListHelper::getData($this->params(['template' => '<img alt="[name]"> [cb_city]']));
+        $html = Site::module($this->params(['template' => '<img alt="[name]"> [cb_city]']));
 
         $this->assertStringContainsString('<img alt="x&quot; onerror=&quot;alert(1)"> &lt;script&gt;alert(1)&lt;/script&gt;&#039;', $html);
         $this->assertStringNotContainsString('<script', $html);
@@ -183,7 +181,7 @@ final class ModuleTest extends TestCase
     public function testUserDataIsEscapedInARule(): void
     {
         $this->setUserData('name', 'x" onerror="alert(1)');
-        $html = modcbListHelper::getData($this->params([
+        $html = Site::module($this->params([
             'template' => '[show]',
             'rules'    => ['r' => ['tag_name' => 'show', 'htmlcode' => '<img alt="[name]">', 'htmlcode_no' => '']],
         ]));
@@ -232,7 +230,7 @@ final class ModuleTest extends TestCase
     {
         $this->usePlugin();
         $this->setUserData('cb_about', '<i>x</i> {cbprofile username=DuckT} [username]');
-        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_about]</b>', 'user-limit' => 1]));
+        $html = Site::module($this->params(['template' => '<b>[cb_about]</b>', 'user-limit' => 1]));
 
         $this->assertStringContainsString('<b><i>x</i> &#123;cbprofile username=DuckT&#125; [username]</b>', $html);
         $this->assertStringNotContainsString('&user=', $html);
@@ -241,7 +239,7 @@ final class ModuleTest extends TestCase
     public function testOldSettingDoesNotTurnOffEscaping(): void
     {
         $this->setUserData('cb_city', '<i>Utrecht</i>');
-        $html = modcbListHelper::getData($this->params(['template' => '<b>[cb_city]</b>', 'escape_values' => '0']));
+        $html = Site::module($this->params(['template' => '<b>[cb_city]</b>', 'escape_values' => '0']));
 
         $this->assertStringContainsString('<b>&lt;i&gt;Utrecht&lt;/i&gt;</b>', $html);
     }
@@ -249,7 +247,7 @@ final class ModuleTest extends TestCase
     public function testTagsInUserDataAreNotReplaced(): void
     {
         $this->setUserData('cb_city', '[username] [secret]');
-        $html = modcbListHelper::getData($this->params([
+        $html = Site::module($this->params([
             'template' => '<b>[cb_city]</b>',
             'rules'    => ['r' => ['tag_name' => 'secret', 'htmlcode' => 'SECRET', 'htmlcode_no' => '']],
         ]));
@@ -265,7 +263,7 @@ final class ModuleTest extends TestCase
 
     public function testPasswordCanNotBeUsedAsTag(): void
     {
-        $html = modcbListHelper::getData($this->params(['template' => '<b>[password]</b>']));
+        $html = Site::module($this->params(['template' => '<b>[password]</b>']));
 
         $this->assertStringContainsString('<b>[password]</b>', $html);
         $this->assertStringNotContainsString('hash653', $html);
@@ -307,9 +305,9 @@ final class ModuleTest extends TestCase
 
     public function testLabelIsFromTheFieldItself(): void
     {
-        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (99,'r','Wrong')");
-        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'r','Red')");
-        Factory::$db->exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'b','')");
+        Site::exec("INSERT INTO jos_comprofiler_field_values VALUES (99,'r','Wrong')");
+        Site::exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'r','Red')");
+        Site::exec("INSERT INTO jos_comprofiler_field_values VALUES (6,'b','')");
         $set = ['template' => '<b>[cb_color]</b>', 'user-limit' => 1];
 
         foreach (['r' => 'Red', 'b' => 'b', 'r|*|b' => 'Red b', "o'x" => 'o&#039;x', 'gone' => 'gone'] as $value => $shown) {
@@ -342,6 +340,24 @@ final class ModuleTest extends TestCase
         $this->assertSame(3, \Joomla\CMS\Router\Route::$calls);
     }
 
+    public function testOneQueryForAllUsers(): void
+    {
+        $this->names(['user-limit' => 1]);
+        $one = \count(Site::$log);
+        Site::$log = [];
+        $this->names();
+
+        $this->assertCount($one, Site::$log);
+    }
+
+    public function testSettingsThatWereNeverSaved(): void
+    {
+        $html = Site::module(new Registry(['listid' => '4', 'template' => '<b>[name]</b>']));
+
+        $this->assertSame(3, substr_count($html, 'cblist-user'));
+        $this->assertStringContainsString('repeat(auto-fit, minmax(5rem, 1fr))', $html);
+    }
+
     public function testOrderByIdAndUnknownField(): void
     {
         $this->assertSame(['Duck Toy', 'Elly elifant', 'Dolly'], $this->names(['orderby' => 'id', 'sortorder' => 'desc']));
@@ -353,7 +369,7 @@ final class ModuleTest extends TestCase
         Site::cbList(7, [['name', '=', 'nobody']], 'empty');
 
         $this->assertSame([], $this->names(['listid' => '7']));
-        Factory::$superUser = true;
-        $this->assertStringContainsString('Empty list', modcbListHelper::getData($this->params(['listid' => '7', 'debug' => '1'])));
+        Site::$superUser = true;
+        $this->assertStringContainsString('The list is empty.', Site::module($this->params(['listid' => '7', 'debug' => '1'])));
     }
 }

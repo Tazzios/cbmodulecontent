@@ -57,8 +57,9 @@ test('build makes one package with the three extensions', () => {
   const file = build();
   assert.equal(path.basename(file), packageZipName(manifestVersion(read(MANIFESTS.package))));
   const pkg = unzip(fs.readFileSync(file));
-  assert.deepEqual(Object.keys(pkg).sort(), ['packages/lib_cblisthelper.zip', 'packages/mod_cblistmodule.zip',
-    'packages/plg_content_cbprofile.zip', 'pkg_cbmodulecontent.xml']);
+  assert.deepEqual(Object.keys(pkg).sort(), ['language/en-GB/pkg_cbmodulecontent.sys.ini', 'language/nl-NL/pkg_cbmodulecontent.sys.ini',
+    'packages/lib_cblisthelper.zip', 'packages/mod_cblistmodule.zip', 'packages/plg_content_cbprofile.zip', 'pkg_cbmodulecontent.xml', 'script.php']);
+  assert.match(read(MANIFESTS.package), /<scriptfile>script\.php<\/scriptfile>/);
   // Every zip the package manifest asks for is there.
   for (const [, zipName] of read(MANIFESTS.package).matchAll(/<file [^>]*>([^<]+)<\/file>/g)) {
     assert.ok(pkg[`packages/${zipName}`], zipName);
@@ -69,7 +70,7 @@ test('build makes one package with the three extensions', () => {
     assert.ok(Object.keys(files).every((n) => !n.includes('\\')), 'forward slashes');
   }
   assert.ok(unzip(pkg['packages/plg_content_cbprofile.zip'])['tmpl/div-avatar.php']);
-  assert.ok(!unzip(pkg['packages/mod_cblistmodule.zip'])['cblisthelper.php'], 'helper is only in the library');
+  assert.ok(unzip(pkg['packages/mod_cblistmodule.zip'])['services/provider.php']);
 });
 
 test('the Unreleased section becomes the release', () => {

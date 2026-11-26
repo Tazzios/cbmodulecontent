@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension type="library" method="upgrade">
-	<name>CB list helper</name>
+	<name>LIB_CBLISTHELPER</name>
 	<libraryname>cblisthelper</libraryname>
 	<author>Tazzios</author>
 	<authorUrl>https://github.com/Tazzios</authorUrl>
 	<creationDate>November 2026</creationDate>
-	<copyright></copyright>
+	<copyright>(C) 2022 Tazzios</copyright>
 	<license>GNU General Public License version 2 or later</license>
 	<version>5.0.1</version>
-	<description>Shared code for the CB module &amp; content package: builds the user query of a Community Builder list.</description>
+	<description>LIB_CBLISTHELPER_XML_DESCRIPTION</description>
+	<namespace path="src">Tazzios\Library\CbListHelper</namespace>
 	<files>
-		<filename>cblisthelper.php</filename>
-		<filename>index.html</filename>
+		<folder>src</folder>
 	</files>
+	<languages folder="language">
+		<language tag="en-GB">en-GB/lib_cblisthelper.sys.ini</language>
+		<language tag="nl-NL">nl-NL/lib_cblisthelper.sys.ini</language>
+	</languages>
 </extension>
