@@ -136,3 +136,18 @@ test('only the package has an update server, and it points to updates.xml and ch
   assert.match(read(MANIFESTS.package), /<changelogurl>https:\/\/raw\.githubusercontent\.com\/Tazzios\/cbmodulecontent\/main\/changelog\.xml<\/changelogurl>/);
   assert.match(read('changelog.xml'), /<changelogs>/);
 });
+
+test('changelog.xml leaves out pull request numbers at the end of a line', () => {
+  const log = 'v5.0.2 December 2026  \nFixed: filter was missing #where= #46  \nChange: language files #57  \nNew: two PRs #46, #47  \nNew: issue #14 in the middle stays\n';
+  const xml = changelogEntry(log, '5.0.2');
+  assert.match(xml, /<item>filter was missing #where=<\/item>/);
+  assert.match(xml, /<change>\n\t\t\t<item>language files<\/item>/);
+  assert.match(xml, /<item>two PRs<\/item>/);
+  assert.match(xml, /<item>issue #14 in the middle stays<\/item>/);
+  assert.doesNotMatch(xml, /#4[67]|#57/);
+});
+
+test('the release notes keep pull request numbers (GitHub links them)', () => {
+  const notes = releaseNotes('v5.0.2 December 2026  \nChange: language files #57  \n', '5.0.2');
+  assert.match(notes, /^- Change: language files #57$/m);
+});
