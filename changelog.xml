@@ -1,3 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <changelogs>
+	<changelog>
+		<element>pkg_cbmodulecontent</element>
+		<type>package</type>
+		<version>5.1.0</version>
+		<fix>
+			<item>avatars of the content plugin are shown at imagewidth and imageheight, also when the template sets max-width or height auto on images (the padding no longer makes them 10px smaller, a non-square image is cropped instead of stretched)</item>
+		</fix>
+		<addition>
+			<item>English and Dutch translations of the module, the plugin, the library and the package</item>
+			<item>the module has layouts (tmpl), also as override in the template</item>
+		</addition>
+		<change>
+			<item>module, plugin and library use the structure of Joomla 5 and 6 (namespaces, service providers, events) and no longer need the Backward Compatibility plugin</item>
+			<item>the library has classes (Tazzios\Library\CbListHelper) instead of global functions</item>
+			<item>fewer database queries in the module</item>
+			<item>the package checks for Joomla 5.0 and PHP 8.1 and removes the files of older versions</item>
+		</change>
+	</changelog>
 </changelogs>
