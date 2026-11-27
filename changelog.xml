@@ -5,8 +5,8 @@
 		<type>package</type>
 		<version>5.1.0</version>
 		<note>
-			<item>5.x summary: one package: pkg_cbmodulecontent contains the CB list module, the {cbprofile} content plugin and their shared library, all with one version number. It upgrades an existing module or plugin in place, and updates come from the package update server</item>
-			<item>5.x summary: Joomla 5 and 6 native: namespaces, service providers and events, so the Backward Compatibility plugin is no longer needed. Requires Joomla 5.0 and PHP 8.1</item>
+			<item>5.x summary: One package. pkg_cbmodulecontent contains the CB list module and the content plugin as they have a shared library and kind of the same function</item>
+			<item>5.x summary: Joomla 5 and 6 native.</item>
 			<item>5.x summary: security hardening: HTML in profile fields is shown as text, [tags] and {plugin tags} in user data are no longer run, the debug query is only shown to Super Users and {cbprofile} tag values are checked and escaped</item>
 			<item>5.x summary: many CB list filter errors fixed: contains, IN, Is not one of, Is empty / Is not empty, an apostrophe in a value and lists without user groups</item>
 		</note>
