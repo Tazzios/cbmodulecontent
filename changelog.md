@@ -1,4 +1,5 @@
 Unreleased  
+Fixed: avatars of the content plugin are shown at imagewidth and imageheight, also when the template sets max-width or height auto on images (the padding no longer makes them 10px smaller, a non-square image is cropped instead of stretched)  
 New: English and Dutch translations of the module, the plugin, the library and the package #4  
 New: the module has layouts (tmpl), also as override in the template #4  
 Changed: module, plugin and library use the structure of Joomla 5 and 6 (namespaces, service providers, events) and no longer need the Backward Compatibility plugin #4  

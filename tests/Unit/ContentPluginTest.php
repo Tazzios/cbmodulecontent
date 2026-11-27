@@ -310,6 +310,7 @@ final class ContentPluginTest extends TestCase
     {
         $this->assertStringContainsString('width="150" height="140"', $this->prepare('{cbprofile username=Dolphine}'));
         $this->assertStringContainsString('width="20" height="30"', $this->prepare('{cbprofile username=Dolphine imagewidth=20 imageheight=30}'));
+        $this->assertStringContainsString('style="width: 20px;height: 30px;max-width: none;object-fit: cover;"', $this->prepare('{cbprofile username=Dolphine imagewidth=20 imageheight=30}'));
     }
 
     public function testLayoutFromTag(): void
