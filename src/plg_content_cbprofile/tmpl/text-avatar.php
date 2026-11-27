@@ -24,5 +24,5 @@ $avatar    = $hasAvatar
 
 ?>
 <a href="<?php echo Uri::base(); ?>index.php?option=com_comprofiler&task=userProfile&user=<?php echo $userprofile['id']; ?>">
-    <img src="<?php echo $avatar; ?>" alt="<?php echo $userprofile['name']; ?>" title="<?php echo $userprofile['name']; ?>" class="cbprofile-avatar" width="<?php echo $imagesize['width']; ?>" height="<?php echo $imagesize['height']; ?>">
+    <img src="<?php echo $avatar; ?>" alt="<?php echo $userprofile['name']; ?>" title="<?php echo $userprofile['name']; ?>" class="cbprofile-avatar" width="<?php echo $imagesize['width']; ?>" height="<?php echo $imagesize['height']; ?>" style="width: <?php echo $imagesize['width']; ?>px;height: <?php echo $imagesize['height']; ?>px;max-width: none;object-fit: cover;">
 </a>

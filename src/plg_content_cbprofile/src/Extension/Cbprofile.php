@@ -103,7 +103,7 @@ final class Cbprofile extends CMSPlugin implements SubscriberInterface
 
         $style = isset($tagParams['float'])
             ? 'float:' . htmlspecialchars($tagParams['float'], ENT_QUOTES, 'UTF-8') . ';'
-            : 'display: grid;grid-template-columns: repeat(auto-fit, minmax(' . $imagesize['width'] . 'px, 1fr));';
+            : 'display: grid;grid-template-columns: repeat(auto-fit, minmax(calc(' . $imagesize['width'] . 'px + 10px), 1fr));';
 
         return '<div class="cbprofile-block" style="' . $style . '">' . $output . '</div>';
     }
